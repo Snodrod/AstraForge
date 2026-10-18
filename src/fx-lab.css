@@ -1,0 +1,66 @@
+/* Texture generator for effects (FxTextureLab.jsx). Embedded in the left panel, ~260-340 px wide: no horizontal scroll. */
+.fxl { min-width: 0; max-width: 100%; overflow-x: clip; }   /* clip, not hidden: hidden would make the root scrollable and break the sticky preview */
+.fxl .section { min-width: 0; }
+/* Fields scrolled into focus must not slide under the pinned preview */
+.fxl button, .fxl input, .fxl select, .fxl-preset { scroll-margin-top: calc(var(--fxl-stick, 360px) + 10px); }
+.fxl-stage-sec { position: sticky; top: 0; z-index: 3; background: var(--panel); box-shadow: 0 6px 12px -8px #000a; }
+.fxl .section-heading { gap: 8px; }
+.fxl .section-heading .optional { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; min-width: 0; }
+.fxl-busy { display: inline-flex; align-items: center; gap: 5px; font-size: 9px; color: #a4b38d; }
+.fxl-busy svg, .fxl-spin { animation: fxl-turn 0.9s linear infinite; }
+@keyframes fxl-turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .fxl-busy svg, .fxl-spin { animation: none; } }
+
+.fxl-stage { position: relative; width: 100%; aspect-ratio: 1; margin: 10px auto 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: repeating-conic-gradient(#242c2d 0 25%, #1a2021 0 50%) 0 0 / 16px 16px; }
+.fxl-stage[data-bg='1'] { background: #07090a; }
+.fxl-stage[data-bg='2'] { background: #7d8784; }
+.fxl-stage canvas { display: block; width: 100%; height: 100%; }
+.fxl-bar { display: flex; align-items: center; gap: 8px; min-height: 30px; margin-top: 6px; }
+.fxl-bar .icon-btn { width: 26px; height: 26px; border: 1px solid #46514d; }
+.fxl-bar .subtle-btn { margin-left: auto; padding: 4px 0; white-space: nowrap; }
+.fxl-fps { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; font-size: 10px; color: var(--muted); }
+.fxl-fps span { flex-shrink: 0; width: 38px; }
+.fxl-fps input { flex: 1; min-width: 40px; }
+.fxl-seg { margin-top: 2px; }
+.fxl-seg button { min-width: 0; padding: 6px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.fxl-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; }
+.fxl-preset { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 4px; min-width: 0; padding: 4px; background: #1a2021; border: 1px solid var(--line); border-radius: 5px; text-align: center; }
+.fxl-preset:hover { border-color: #5d7050; }
+.fxl-preset.active { border-color: var(--accent); background: #2a3228; }
+.fxl-thumb { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; border-radius: 3px; overflow: hidden; color: #5d7050; background: repeating-conic-gradient(#242c2d 0 25%, #1a2021 0 50%) 0 0 / 10px 10px; }
+.fxl-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.fxl-pt { font-size: 9px; line-height: 1.25; color: var(--muted); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fxl-preset.active .fxl-pt { color: var(--accent); }
+
+.fxl-field { display: block; margin: 0 0 12px; min-width: 0; }
+.fxl-field:last-child { margin-bottom: 0; }
+.fxl-fl { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-size: 10px; color: #a1b491; }
+.fxl-fl output { font: 10px Consolas, 'Cascadia Mono', monospace; color: var(--muted); flex-shrink: 0; }
+.fxl-field select { font-size: 11px; padding: 7px 8px; }
+.fxl-field input[type=range] { display: block; margin: 8px 0 4px; }
+.fxl-seed { display: flex; align-items: center; gap: 6px; }
+.fxl-seed input { flex: 1; font-size: 11px; padding: 6px 8px; }
+.fxl-seed .icon-btn { border: 1px solid #46514d; width: 30px; height: 30px; }
+.fxl-colors { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.fxl-color { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; min-width: 52px; font-size: 9px; color: var(--muted); text-align: center; }
+.fxl-color input[type=color] { width: 100%; height: 28px; padding: 2px; cursor: pointer; }
+.fxl .field-note { margin-top: 10px; }
+
+.fxl-actions { display: flex; flex-direction: column; gap: 8px; border-bottom: 0; }
+.fxl-actions .primary, .fxl-actions .secondary { margin-top: 0; }
+.fxl-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.fxl-row .secondary { flex: 1; min-width: 0; padding: 8px 6px; }
+.fxl-actions .field-note { margin: 0; }
+
+/* Dense layout for the side panel */
+.fxl.compact .section { padding: 12px; }
+.fxl.compact .section-heading { margin-bottom: 8px; }
+.fxl.compact .fxl-stage { max-width: 236px; }
+.fxl.compact .fxl-presets { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 5px; }
+.fxl.compact .fxl-pt { font-size: 8.5px; }
+.fxl.compact .fxl-field { margin-bottom: 10px; }
+.fxl.compact .fxl-row .secondary { font-size: 10px; }
+
+/* Low window: the pinned preview would eat half the panel */
+@media (max-height: 760px) { .fxl-stage-sec { position: static; box-shadow: none; } .fxl button, .fxl input, .fxl select, .fxl-preset { scroll-margin-top: 0; } }

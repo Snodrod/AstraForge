@@ -1,0 +1,52 @@
+/* VFX tab (VfxPanel.jsx): catalogue of texture generators for effects */
+.vfx-status { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; }
+.vfx-status .secondary, .vfx-row .secondary { margin-top: 0; }
+.vfx-root { display: flex; flex-direction: column; gap: 3px; min-width: 0; max-width: 100%; }
+.vfx-root small { font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--dim); }
+.vfx-root code, .vfx-first code, .vfx-warn code { font: 10.5px/1.5 Consolas, 'Cascadia Mono', monospace; color: #b7c4bc; overflow-wrap: anywhere; }
+.vfx-status .field-note { margin: 0; }
+.vfx-warn { color: #d9b36f; }
+.vfx-first { margin-top: 0; }
+.vfx-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+.vfx-list { display: flex; flex-direction: column; gap: 8px; }
+.vfx-card { display: flex; flex-direction: column; gap: 5px; padding: 10px 11px; background: #1a2021; border: 1px solid var(--line); border-radius: 5px; }
+.vfx-card.off { opacity: 0.62; }
+.vfx-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vfx-card-head strong { font-size: 12px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.vfx-meta { font-size: 10px; color: var(--dim); overflow-wrap: anywhere; }
+.vfx-desc { margin: 0; font-size: 11px; line-height: 1.5; color: #b7c4bc; }
+.vfx-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.vfx-tags span { font-size: 9px; color: #7f948a; border: 1px solid #2f3a37; border-radius: 3px; padding: 1px 5px; }
+.vfx-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 3px; }
+.vfx-actions .secondary { margin-top: 0; }
+.vfx-actions .icon-btn { width: 28px; height: 28px; border: 1px solid #46514d; }
+.vfx-link { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; padding: 6px 4px; font-size: 11px; color: #a4b38d; text-decoration: none; border-radius: 4px; }
+.vfx-link:hover { color: #e1eabc; background: #2b3335; }
+
+.vfx-fold { margin-top: 0; border-top: 0; }
+.vfx-fold > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; list-style: none; font-size: 11px; font-weight: 550; color: #cbd5cb; }
+.vfx-fold > summary::-webkit-details-marker { display: none; }
+.vfx-fold > summary > span:first-child::before { content: '▸'; display: inline-block; width: 14px; color: var(--dim); }
+.vfx-fold[open] > summary > span:first-child::before { content: '▾'; }
+.vfx-fold[open] > summary { margin-bottom: 12px; }
+
+.vfx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; max-height: 236px; overflow-y: auto; margin-top: 10px; padding-right: 2px; scrollbar-width: thin; scrollbar-color: #46524d transparent; }
+.vfx-thumb { flex-direction: column; align-items: stretch; gap: 3px; min-width: 0; padding: 3px; background: #1a2021; border: 1px solid var(--line); border-radius: 5px; }
+.vfx-thumb:hover { border-color: #5d7050; }
+.vfx-thumb.active { border-color: var(--accent); background: #2a3228; }
+.vfx-thumb img { width: 100%; aspect-ratio: 1; object-fit: contain; display: block; border-radius: 3px; background: repeating-conic-gradient(#242c2d 0 25%, #1a2021 0 50%) 0 0 / 12px 12px; }
+.vfx-thumb span { font-size: 9px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.vfx-apply { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #30393b; }
+.vfx-picked { font-size: 11px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vfx-apply .field-note { margin: 0; }
+
+/* Web generator over the workspace */
+.vfx-web-back { position: fixed; inset: 0; z-index: 100; display: flex; padding: 16px; background: #0a110ecc; backdrop-filter: blur(6px); }
+.vfx-web { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: #171c1e; border: 1px solid #5d7050; border-radius: 10px; box-shadow: 0 30px 100px #0009; }
+.vfx-web-head { display: flex; align-items: center; gap: 12px; height: 46px; flex-shrink: 0; padding: 0 8px 0 16px; border-bottom: 1px solid var(--line); background: #1c2325; }
+.vfx-web-head strong { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.vfx-web-head > span { flex: 1; min-width: 0; font-size: 10px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vfx-web-head .vfx-link { margin-left: 0; white-space: nowrap; }
+.vfx-web iframe { flex: 1; min-height: 0; width: 100%; border: 0; background: #fff; }
+@media (max-width: 760px) { .vfx-web-back { padding: 0; } .vfx-web { border-radius: 0; border-width: 0; } .vfx-web-head > span { display: none; } }

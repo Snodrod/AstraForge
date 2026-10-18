@@ -1,0 +1,1069 @@
+{
+  "format": "astraforge-fx/1",
+  "_axes": "All vectors are in the socket's Godot local axes. Godot +Y = Blender socket local +Z = 'out' (exhaust of socket_thruster_*, outward normal of turret seats, blade/shaft direction of socket_mount_hand_* and socket_grip_main, up for socket_fx_head/chest). Godot -Z = Blender socket local +Y = 'forward' of muzzles (socket_muzzle_*). Gravity is world space when local_coords is false.",
+  "_fields": "amount, lifetime (s), one_shot, autostart, explosiveness, randomness, local_coords, fixed_fps (simulation Hz, default 30), direction, spread (deg), velocity [min,max] m/s, gravity m/s2, damping [min,max], tangential_accel, radial_accel, angle, angular_velocity (deg/s), scale [min,max], scale_curve [[t,v]...], color_ramp [[t,[r,g,b,a]]...], emission {shape: point|sphere|sphere_surface|box|ring, radius, inner_radius, height, axis, extents}, quad_size (m), texture: soft|spark|star|smoke|ring, blend: add|mix, turbulence, light {color, energy, range} (adds an OmniLight3D). reference_size_m (asset longest axis the preset is tuned for), reference_socket_m (seat/nozzle diameter it is tuned for). Binding params: scale (sizes and velocities), color (RGB tint), amount, lifetime, speed_scale or any field above.",
+  "_scale": "Presets are metric. godot_package scales a binding without params.scale by k: socket diameter (extras diameter_m / mount_d_m / nozzle_d_m) or size_class S/M/L (representative seat 1.0/2.25/4.5 m, middle of the size-class ranges <=1.5/3/6 m; inherited from a parent socket such as a turret socket_mount) divided by reference_socket_m; else the asset's longest axis divided by reference_size_m; else 1. k multiplies every length: quad_size, velocity, damping, accelerations, gravity, emission shape, light range and visibility_aabb.",
+  "presets": {
+    "engine_trail": {
+      "description": "Ion exhaust trail of a ship thruster: world-space soft particles, large and low-alpha so per-step clumps overlap into a continuous trail (GL Compatibility has no particle trails). Native size suits a ~0.45 m nozzle (quad 0.95 m); godot_package scales it by the socket size_class/diameter (L -> x10).",
+      "use": [
+        "ship",
+        "socket_thruster_*"
+      ],
+      "reference_size_m": 6.0,
+      "reference_socket_m": 0.45,
+      "amount": 240,
+      "lifetime": 0.55,
+      "local_coords": false,
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "spread": 2,
+      "velocity": [
+        1.2,
+        1.8
+      ],
+      "gravity": [
+        0,
+        0,
+        0
+      ],
+      "damping": [
+        0.5,
+        1.0
+      ],
+      "emission": {
+        "shape": "sphere",
+        "radius": 0.06
+      },
+      "scale": [
+        0.7,
+        1.0
+      ],
+      "scale_curve": [
+        [
+          0,
+          0.55
+        ],
+        [
+          0.15,
+          1
+        ],
+        [
+          1,
+          0.3
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            0.75,
+            0.92,
+            1,
+            0.5
+          ]
+        ],
+        [
+          0.12,
+          [
+            0.4,
+            0.7,
+            1,
+            0.4
+          ]
+        ],
+        [
+          0.55,
+          [
+            0.18,
+            0.38,
+            1,
+            0.2
+          ]
+        ],
+        [
+          1,
+          [
+            0.05,
+            0.1,
+            0.5,
+            0
+          ]
+        ]
+      ],
+      "quad_size": 0.95,
+      "texture": "soft",
+      "blend": "add",
+      "visibility_aabb": [
+        -8,
+        -2,
+        -8,
+        16,
+        16,
+        16
+      ],
+      "fixed_fps": 60
+    },
+    "thruster_glow": {
+      "description": "Hot glow at the nozzle mouth with a small light; local to the socket.",
+      "use": [
+        "ship",
+        "socket_thruster_*"
+      ],
+      "reference_size_m": 6.0,
+      "reference_socket_m": 0.45,
+      "amount": 16,
+      "lifetime": 0.25,
+      "local_coords": true,
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "spread": 8,
+      "velocity": [
+        0.5,
+        1.0
+      ],
+      "emission": {
+        "shape": "sphere",
+        "radius": 0.05
+      },
+      "scale": [
+        0.8,
+        1.2
+      ],
+      "scale_curve": [
+        [
+          0,
+          0.6
+        ],
+        [
+          0.3,
+          1
+        ],
+        [
+          1,
+          0.2
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            0.85,
+            0.95,
+            1,
+            0.8
+          ]
+        ],
+        [
+          0.5,
+          [
+            0.4,
+            0.65,
+            1,
+            0.5
+          ]
+        ],
+        [
+          1,
+          [
+            0.15,
+            0.3,
+            1,
+            0
+          ]
+        ]
+      ],
+      "quad_size": 0.4,
+      "texture": "soft",
+      "blend": "add",
+      "light": {
+        "color": [
+          0.5,
+          0.75,
+          1.0
+        ],
+        "energy": 1.5,
+        "range": 2.0
+      }
+    },
+    "aura": {
+      "description": "Slowly rising ring of motes around a character (buff, elite marker).",
+      "use": [
+        "humanoid",
+        "creature",
+        "socket_fx_chest"
+      ],
+      "reference_size_m": 1.8,
+      "amount": 48,
+      "lifetime": 1.6,
+      "local_coords": true,
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "spread": 5,
+      "velocity": [
+        0.3,
+        0.6
+      ],
+      "emission": {
+        "shape": "ring",
+        "axis": [
+          0,
+          1,
+          0
+        ],
+        "radius": 0.45,
+        "inner_radius": 0.35,
+        "height": 0.05
+      },
+      "scale": [
+        0.5,
+        0.9
+      ],
+      "scale_curve": [
+        [
+          0,
+          0
+        ],
+        [
+          0.2,
+          1
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            1,
+            0.9,
+            0.5,
+            0
+          ]
+        ],
+        [
+          0.2,
+          [
+            1,
+            0.85,
+            0.4,
+            0.9
+          ]
+        ],
+        [
+          1,
+          [
+            1,
+            0.7,
+            0.2,
+            0
+          ]
+        ]
+      ],
+      "quad_size": 0.18,
+      "texture": "soft",
+      "blend": "add"
+    },
+    "magic_cast": {
+      "description": "Swirling arcane sparkles at a casting hand or staff tip.",
+      "use": [
+        "humanoid",
+        "socket_mount_hand_*",
+        "socket_fx_tip"
+      ],
+      "reference_size_m": 1.8,
+      "amount": 40,
+      "lifetime": 0.6,
+      "local_coords": true,
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "spread": 60,
+      "velocity": [
+        0.4,
+        0.9
+      ],
+      "tangential_accel": [
+        2,
+        3
+      ],
+      "radial_accel": [
+        -1,
+        -0.5
+      ],
+      "emission": {
+        "shape": "sphere",
+        "radius": 0.08
+      },
+      "scale": [
+        0.4,
+        0.8
+      ],
+      "scale_curve": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            0.95,
+            0.85,
+            1,
+            1
+          ]
+        ],
+        [
+          0.4,
+          [
+            0.65,
+            0.35,
+            1,
+            0.9
+          ]
+        ],
+        [
+          1,
+          [
+            0.35,
+            0.1,
+            0.8,
+            0
+          ]
+        ]
+      ],
+      "quad_size": 0.12,
+      "texture": "star",
+      "blend": "add",
+      "light": {
+        "color": [
+          0.7,
+          0.45,
+          1.0
+        ],
+        "energy": 1.2,
+        "range": 2.0
+      }
+    },
+    "fire": {
+      "description": "Flames rising from a torch, brazier or burning unit.",
+      "use": [
+        "prop",
+        "item",
+        "socket_fx_tip",
+        "socket_fx_head"
+      ],
+      "reference_size_m": 1.8,
+      "amount": 48,
+      "lifetime": 0.8,
+      "local_coords": false,
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "spread": 12,
+      "velocity": [
+        0.6,
+        1.0
+      ],
+      "gravity": [
+        0,
+        1.5,
+        0
+      ],
+      "damping": [
+        0.5,
+        1
+      ],
+      "emission": {
+        "shape": "sphere",
+        "radius": 0.12
+      },
+      "scale": [
+        0.7,
+        1.2
+      ],
+      "scale_curve": [
+        [
+          0,
+          0.4
+        ],
+        [
+          0.25,
+          1
+        ],
+        [
+          1,
+          0.1
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            1,
+            0.95,
+            0.6,
+            1
+          ]
+        ],
+        [
+          0.3,
+          [
+            1,
+            0.55,
+            0.1,
+            0.9
+          ]
+        ],
+        [
+          0.7,
+          [
+            0.8,
+            0.15,
+            0.02,
+            0.5
+          ]
+        ],
+        [
+          1,
+          [
+            0.2,
+            0.05,
+            0.02,
+            0
+          ]
+        ]
+      ],
+      "quad_size": 0.35,
+      "texture": "soft",
+      "blend": "add",
+      "light": {
+        "color": [
+          1.0,
+          0.6,
+          0.25
+        ],
+        "energy": 1.5,
+        "range": 3.0
+      }
+    },
+    "smoke": {
+      "description": "Grey puffs that rise, grow and fade (damage, chimneys, after an explosion).",
+      "use": [
+        "ship",
+        "prop",
+        "creature"
+      ],
+      "reference_size_m": 3.0,
+      "amount": 40,
+      "lifetime": 2.5,
+      "local_coords": false,
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "spread": 15,
+      "velocity": [
+        0.4,
+        0.7
+      ],
+      "gravity": [
+        0,
+        0.3,
+        0
+      ],
+      "damping": [
+        0.3,
+        0.6
+      ],
+      "angle": [
+        0,
+        360
+      ],
+      "angular_velocity": [
+        -30,
+        30
+      ],
+      "emission": {
+        "shape": "sphere",
+        "radius": 0.15
+      },
+      "scale": [
+        0.8,
+        1.2
+      ],
+      "scale_curve": [
+        [
+          0,
+          0.3
+        ],
+        [
+          1,
+          1.6
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            0.4,
+            0.4,
+            0.4,
+            0
+          ]
+        ],
+        [
+          0.12,
+          [
+            0.32,
+            0.32,
+            0.32,
+            0.7
+          ]
+        ],
+        [
+          0.6,
+          [
+            0.27,
+            0.27,
+            0.27,
+            0.45
+          ]
+        ],
+        [
+          1,
+          [
+            0.25,
+            0.25,
+            0.25,
+            0
+          ]
+        ]
+      ],
+      "quad_size": 0.9,
+      "texture": "smoke",
+      "blend": "mix"
+    },
+    "sparks": {
+      "description": "Hot sparks thrown out and falling under gravity (hits, grinding, damage).",
+      "use": [
+        "ship",
+        "item",
+        "prop"
+      ],
+      "reference_size_m": 1.8,
+      "amount": 48,
+      "lifetime": 0.6,
+      "explosiveness": 0.1,
+      "local_coords": false,
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "spread": 50,
+      "velocity": [
+        3,
+        5
+      ],
+      "gravity": [
+        0,
+        -9.8,
+        0
+      ],
+      "emission": {
+        "shape": "point"
+      },
+      "scale": [
+        0.6,
+        1.0
+      ],
+      "scale_curve": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0.3
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            1,
+            1,
+            0.9,
+            1
+          ]
+        ],
+        [
+          0.5,
+          [
+            1,
+            0.8,
+            0.35,
+            1
+          ]
+        ],
+        [
+          1,
+          [
+            1,
+            0.4,
+            0.05,
+            0
+          ]
+        ]
+      ],
+      "quad_size": 0.1,
+      "texture": "spark",
+      "blend": "add",
+      "fixed_fps": 60
+    },
+    "ice": {
+      "description": "Cold glints drifting and spinning down (frost buff, ice weapon).",
+      "use": [
+        "humanoid",
+        "item",
+        "creature"
+      ],
+      "reference_size_m": 1.8,
+      "amount": 36,
+      "lifetime": 1.4,
+      "local_coords": false,
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "spread": 180,
+      "velocity": [
+        0.1,
+        0.3
+      ],
+      "gravity": [
+        0,
+        -0.6,
+        0
+      ],
+      "angle": [
+        0,
+        360
+      ],
+      "angular_velocity": [
+        -90,
+        90
+      ],
+      "emission": {
+        "shape": "sphere",
+        "radius": 0.25
+      },
+      "scale": [
+        0.4,
+        0.9
+      ],
+      "scale_curve": [
+        [
+          0,
+          0
+        ],
+        [
+          0.15,
+          1
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            0.85,
+            0.97,
+            1,
+            1
+          ]
+        ],
+        [
+          0.5,
+          [
+            0.55,
+            0.85,
+            1,
+            0.9
+          ]
+        ],
+        [
+          1,
+          [
+            0.4,
+            0.7,
+            1,
+            0
+          ]
+        ]
+      ],
+      "quad_size": 0.12,
+      "texture": "star",
+      "blend": "add"
+    },
+    "poison": {
+      "description": "Toxic green bubbles wobbling upward (poisoned unit, venom weapon).",
+      "use": [
+        "humanoid",
+        "creature",
+        "item"
+      ],
+      "reference_size_m": 1.8,
+      "amount": 30,
+      "lifetime": 1.5,
+      "local_coords": false,
+      "turbulence": 0.6,
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "spread": 20,
+      "velocity": [
+        0.2,
+        0.5
+      ],
+      "gravity": [
+        0,
+        0.2,
+        0
+      ],
+      "emission": {
+        "shape": "sphere",
+        "radius": 0.2
+      },
+      "scale": [
+        0.5,
+        1.0
+      ],
+      "scale_curve": [
+        [
+          0,
+          0.2
+        ],
+        [
+          0.3,
+          1
+        ],
+        [
+          1,
+          0.6
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            0.5,
+            1,
+            0.2,
+            0
+          ]
+        ],
+        [
+          0.2,
+          [
+            0.35,
+            0.9,
+            0.15,
+            0.85
+          ]
+        ],
+        [
+          1,
+          [
+            0.1,
+            0.4,
+            0.05,
+            0
+          ]
+        ]
+      ],
+      "quad_size": 0.12,
+      "texture": "ring",
+      "blend": "add"
+    },
+    "heal": {
+      "description": "Green-gold sparkles rising from a ring at the feet or chest (healing, regeneration).",
+      "use": [
+        "humanoid",
+        "creature",
+        "socket_fx_chest"
+      ],
+      "reference_size_m": 1.8,
+      "amount": 36,
+      "lifetime": 1.4,
+      "local_coords": true,
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "spread": 8,
+      "velocity": [
+        0.5,
+        0.9
+      ],
+      "emission": {
+        "shape": "ring",
+        "axis": [
+          0,
+          1,
+          0
+        ],
+        "radius": 0.4,
+        "inner_radius": 0.1,
+        "height": 0.0
+      },
+      "scale": [
+        0.5,
+        1.0
+      ],
+      "scale_curve": [
+        [
+          0,
+          0
+        ],
+        [
+          0.2,
+          1
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            0.85,
+            1,
+            0.6,
+            0
+          ]
+        ],
+        [
+          0.2,
+          [
+            0.5,
+            1,
+            0.45,
+            0.95
+          ]
+        ],
+        [
+          1,
+          [
+            1,
+            0.9,
+            0.4,
+            0
+          ]
+        ]
+      ],
+      "quad_size": 0.14,
+      "texture": "star",
+      "blend": "add",
+      "light": {
+        "color": [
+          0.6,
+          1.0,
+          0.55
+        ],
+        "energy": 0.8,
+        "range": 2.0
+      }
+    },
+    "muzzle_flash": {
+      "description": "One-shot muzzle flash; fires along the socket's -Z (muzzle forward). Trigger from code: root.trigger(\"socket_muzzle_01\").",
+      "use": [
+        "ship",
+        "item",
+        "socket_muzzle_*"
+      ],
+      "reference_size_m": 1.0,
+      "reference_socket_m": 1.0,
+      "amount": 12,
+      "lifetime": 0.08,
+      "one_shot": true,
+      "autostart": false,
+      "explosiveness": 1.0,
+      "local_coords": true,
+      "direction": [
+        0,
+        0,
+        -1
+      ],
+      "spread": 12,
+      "velocity": [
+        2,
+        4
+      ],
+      "emission": {
+        "shape": "point"
+      },
+      "scale": [
+        0.8,
+        1.4
+      ],
+      "scale_curve": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            1,
+            1,
+            0.95,
+            1
+          ]
+        ],
+        [
+          0.4,
+          [
+            1,
+            0.85,
+            0.4,
+            0.9
+          ]
+        ],
+        [
+          1,
+          [
+            1,
+            0.45,
+            0.1,
+            0
+          ]
+        ]
+      ],
+      "quad_size": 0.35,
+      "texture": "star",
+      "blend": "add",
+      "light": {
+        "color": [
+          1.0,
+          0.8,
+          0.5
+        ],
+        "energy": 2.0,
+        "range": 1.5
+      }
+    },
+    "nav_light": {
+      "description": "Blinking navigation light (1 Hz, short flash). Default red; tint with params.color, e.g. [0.15, 6, 1.5] for green.",
+      "use": [
+        "ship",
+        "station",
+        "socket_fx_*"
+      ],
+      "reference_size_m": 6.0,
+      "amount": 1,
+      "lifetime": 1.0,
+      "local_coords": true,
+      "direction": [
+        0,
+        1,
+        0
+      ],
+      "spread": 0,
+      "velocity": [
+        0,
+        0
+      ],
+      "emission": {
+        "shape": "point"
+      },
+      "scale": [
+        1,
+        1
+      ],
+      "scale_curve": [
+        [
+          0,
+          0
+        ],
+        [
+          0.02,
+          1
+        ],
+        [
+          0.18,
+          1
+        ],
+        [
+          0.22,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "color_ramp": [
+        [
+          0,
+          [
+            1,
+            0.15,
+            0.1,
+            1
+          ]
+        ],
+        [
+          1,
+          [
+            1,
+            0.15,
+            0.1,
+            1
+          ]
+        ]
+      ],
+      "quad_size": 0.5,
+      "texture": "soft",
+      "blend": "add"
+    }
+  }
+}

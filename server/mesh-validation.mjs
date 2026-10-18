@@ -1,0 +1,7 @@
+export const maxMeshBytes=100*1024*1024,maxMeshTriangles=2500000;
+export function validateGeneratedMesh(buffer){
+ if(buffer.length>maxMeshBytes)throw new Error('The mesh exceeds 100 MB. Check the surface level; such a result will not be imported.');
+ if(buffer.length<28||buffer.toString('ascii',0,4)!=='glTF'||buffer.readUInt32LE(4)!==2||buffer.readUInt32LE(8)!==buffer.length)throw new Error('Invalid GLB from the generator.');const size=buffer.readUInt32LE(12);if(size>buffer.length-20||buffer.toString('ascii',16,20)!=='JSON')throw new Error('Invalid geometry header.');
+ const doc=JSON.parse(buffer.toString('utf8',20,20+size));let triangles=0,vertices=0;for(const mesh of doc.meshes||[])for(const primitive of mesh.primitives||[]){if((primitive.mode??4)!==4)throw new Error('A triangle mesh was expected.');const position=doc.accessors?.[primitive.attributes?.POSITION],indices=primitive.indices===undefined?position:doc.accessors?.[primitive.indices];if(!Number.isSafeInteger(position?.count)||position.count<3||!Number.isSafeInteger(indices?.count)||indices.count<3||indices.count%3)throw new Error('Invalid vertex/triangle count.');vertices+=position.count;triangles+=indices.count/3;}
+ if(!triangles)throw new Error('The generator returned an empty mesh.');if(triangles>maxMeshTriangles)throw new Error('The mesh exceeds 2.5 million triangles. The surface level may be set incorrectly.');return {bytes:buffer.length,triangles,vertices,accepted:true,scope:'technical bounds; anatomy is not validated'};
+}

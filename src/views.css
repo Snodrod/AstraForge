@@ -1,0 +1,29 @@
+/* "Views" block (ViewsPanel.jsx) */
+.views-block { display: flex; flex-direction: column; gap: 10px; }
+.views-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.view-slot { min-width: 0; }
+.view-frame { position: relative; aspect-ratio: 3 / 4; background: #171d1e; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+.view-slot.filled .view-frame { background: #fff; }
+.view-frame img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.view-empty { width: 100%; height: 100%; flex-direction: column; gap: 4px; font-size: 9px; color: #7f948a; border: 1px dashed #46524d; border-radius: 5px; }
+.view-empty:hover:not(:disabled) { color: var(--accent); border-color: #7d9060; }
+.view-tools { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 2px; padding: 3px; background: rgba(23, 29, 30, 0.82); opacity: 0; transition: opacity 0.12s; }
+.view-frame:hover .view-tools, .view-frame:focus-within .view-tools { opacity: 1; }
+.view-tools button { width: 22px; height: 22px; border-radius: 3px; color: #b7c4bc; }
+.view-tools button:hover:not(:disabled) { background: #3b4937; color: var(--accent); }
+.view-wait { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(23, 29, 30, 0.6); color: var(--accent); }
+.view-caption { display: flex; flex-direction: column; gap: 1px; margin-top: 4px; font-size: 9px; color: var(--dim); line-height: 1.3; }
+.view-caption strong { font-size: 10px; font-weight: 600; color: var(--muted); }
+.views-provider button { gap: 5px; font-size: 11px; }
+.views-warn { color: #d9b36f; }
+.views-progress { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #b7c4bc; padding: 9px 10px; background: #1a2021; border: 1px solid var(--line); border-radius: 5px; }
+.views-progress span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.views-progress button { font-size: 10px; color: #d9b36f; padding: 3px 6px; }
+.views-build { margin-top: 2px; }
+@media (max-width: 1100px) { .views-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* "3D engine" switch (EngineSelect in ViewsPanel.jsx): "Views" and "Geometry quality" blocks */
+.engine-pick { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.engine-label { font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--dim); }
+.engine-pick .segmented button { gap: 5px; font-size: 11px; }
+.engine-pick .field-note { margin: 2px 0 0; }

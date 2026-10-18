@@ -1,0 +1,5 @@
+{
+  "format": "astraforge-kits/1",
+  "notes": "Reusable kit data for forge steps. Only derived data lives here; every entry names its source. Paths are relative to this file. textures: {name: {title, albedo, normal, albedo_size, normal_size, tile_m, mean_linear_rgb, normal_convention, source, credit}} - tileable albedo/normal pairs for ship_from_mesh armor_texture. No texture kit ships with the studio; add your own here.",
+  "textures": {}
+}

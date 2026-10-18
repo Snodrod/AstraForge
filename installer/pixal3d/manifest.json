@@ -1,0 +1,225 @@
+{
+  "_comment": "Pixal3D engine pins. Reproduces C:AstraForgeComfyUI-Pixal3D as verified on 2026-10-14. Hashes of Hugging Face files are taken from the HF file listing (lfs.oid = sha256); the installer re-checks them against the live listing when it is reachable.",
+  "generated": "2026-10-14",
+  "python": {
+    "version": "3.12.10",
+    "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
+    "devMsiUrl": "https://www.python.org/ftp/python/3.12.10/amd64/dev.msi",
+    "signer": "Python Software Foundation",
+    "pip": "26.2.1"
+  },
+  "comfy": {
+    "version": "0.39.0",
+    "commit": "8010b48d2c1be986613f8e8c761527d205bd756f",
+    "url": "https://github.com/Comfy-Org/ComfyUI/archive/8010b48d2c1be986613f8e8c761527d205bd756f.zip"
+  },
+  "torch": {
+    "index": "https://download.pytorch.org/whl/cu128",
+    "packages": [
+      "torch==2.8.0",
+      "torchvision==0.23.0",
+      "torchaudio==2.8.0"
+    ]
+  },
+  "flashAttn": {
+    "url": "https://github.com/kingbri1/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu128torch2.8.0cxx11abiFALSE-cp312-cp312-win_amd64.whl",
+    "file": "flash_attn-2.8.3+cu128torch2.8.0cxx11abiFALSE-cp312-cp312-win_amd64.whl",
+    "size": 127588011,
+    "sha256": "709d6663d74f96bb0304b5ba2ffee84a4dafbcb56d73d35bc90b7ca8cd44261b"
+  },
+  "trellis2": {
+    "version": "1.0.27",
+    "commit": "b0e84c0f29857a444e8bcb5b9be2ea218e96efd0",
+    "url": "https://github.com/visualbruno/ComfyUI-Trellis2/archive/b0e84c0f29857a444e8bcb5b9be2ea218e96efd0.zip",
+    "wheelDir": "wheels/Windows/Torch280",
+    "wheels": [
+      {
+        "file": "cumesh-1.0-cp312-cp312-win_amd64.whl",
+        "sha256": "fc5124db900a883d3b48e031bcaeca7d07f500b9935dcb40b2cab6b365126de4"
+      },
+      {
+        "file": "nvdiffrast-0.4.0-cp312-cp312-win_amd64.whl",
+        "sha256": "e19fd7a34ce07cd0b5b7ecb6f79d956149ea4d9bdd83bf9ece9e77e13947f208",
+        "note": "NVIDIA non-commercial licence; imported by the node pack, not used by AstraForge"
+      },
+      {
+        "file": "nvdiffrec_render-0.0.0-cp312-cp312-win_amd64.whl",
+        "sha256": "4318a7c0051ce6f2d7be3ca0a8076210049c3fd7ee24da391e558b0516c1325e",
+        "note": "NVIDIA non-commercial licence; not used by AstraForge"
+      },
+      {
+        "file": "flex_gemm-0.0.1-cp312-cp312-win_amd64.whl",
+        "sha256": "fa0da34b7b1baa5e88397208ccc8a70b28d24567b0f95a4545cfef217a01f004"
+      },
+      {
+        "file": "o_voxel-0.0.1-cp312-cp312-win_amd64.whl",
+        "sha256": "b9cb2d30af62e8f1f970a5bd64052b8644f5ff2c87a644ab250872cfaff1f2e4"
+      }
+    ],
+    "natten": {
+      "file": "natten-0.21.6-cp312-cp312-win_amd64.whl",
+      "sha256": "1ba8ca20697ffec8ab8e853971f166e72a1c3b6aa274eee59bfa61c096f84451",
+      "blackwellDir": "Blackwell",
+      "blackwellSha256": "546e6365ceb05c1f32419c73a2175fedea04920e1cd63cbf6c45e3e4676aec10"
+    }
+  },
+  "utils3d": {
+    "version": "1.7",
+    "commit": "83bfa5bda008803f6521ce9547f94023b8afeddd",
+    "url": "https://github.com/EasternJournalist/utils3d/archive/83bfa5bda008803f6521ce9547f94023b8afeddd.zip"
+  },
+  "naf": {
+    "commit": "37f2dfc180f2de53d98bd601109c0da0dd6b0f43",
+    "url": "https://github.com/valeoai/NAF/archive/37f2dfc180f2de53d98bd601109c0da0dd6b0f43.zip",
+    "checkpoint": {
+      "url": "https://github.com/valeoai/NAF/releases/download/model/naf_release.pth",
+      "size": 2664431,
+      "sha256": "c096c1ab2217a5c3ac136365f721685e2201379cb69d509cfb0261183847c98f"
+    }
+  },
+  "dinov3": {
+    "repo": "timm/vit_large_patch16_dinov3.lvd1689m",
+    "files": [
+      {
+        "path": "model.safetensors",
+        "size": 1212347640,
+        "sha256": "45172f209c9583c40538afc26b60a07033e6fcc2e8c30228338e6b2e932e7941"
+      },
+      {
+        "path": "config.json",
+        "size": 671,
+        "sha256": null
+      },
+      {
+        "path": "LICENSE.md",
+        "size": 7503,
+        "sha256": null
+      }
+    ]
+  },
+  "moge": {
+    "repo": "Ruicheng/moge-2-vitl",
+    "files": [
+      {
+        "path": "model.pt",
+        "size": 1305030700,
+        "sha256": "3eefd4abb2102f38f12b2d1992e5ff15e4923e5431c67dd494afe157e0111cd5"
+      },
+      {
+        "path": "README.md",
+        "size": 24,
+        "sha256": null
+      }
+    ]
+  },
+  "pixal3d": {
+    "repo": "TencentARC/Pixal3D",
+    "files": [
+      {
+        "path": "LICENSE",
+        "size": 1064,
+        "sha256": null
+      },
+      {
+        "path": "NOTICE",
+        "size": 12527,
+        "sha256": null
+      },
+      {
+        "path": "README.md",
+        "size": 13251,
+        "sha256": null
+      },
+      {
+        "path": "pipeline.json",
+        "size": 4068,
+        "sha256": null
+      },
+      {
+        "path": "pipeline_mv.json",
+        "size": 6036,
+        "sha256": null
+      },
+      {
+        "path": "ckpts/ss_dec_conv3d_16l8_fp16.json",
+        "size": 245,
+        "sha256": null
+      },
+      {
+        "path": "ckpts/ss_dec_conv3d_16l8_fp16.safetensors",
+        "size": 147591972,
+        "sha256": "1c76d4a40519aa2d711cc263a8404105231ac26db31d946bed48b84fee79009a"
+      },
+      {
+        "path": "ckpts/shape_dec_next_dc_f16c32_fp16.json",
+        "size": 678,
+        "sha256": null
+      },
+      {
+        "path": "ckpts/shape_dec_next_dc_f16c32_fp16.safetensors",
+        "size": 948490494,
+        "sha256": "e3b718d3e43e4f8780e9a24ac6fff231811a67e3b058e336e10fe654c911d581"
+      },
+      {
+        "path": "ckpts/ss_flow_img_dit_1_3B_64_bf16.json",
+        "size": 503,
+        "sha256": null
+      },
+      {
+        "path": "ckpts/ss_flow_img_dit_1_3B_64_bf16.safetensors",
+        "size": 5359822584,
+        "sha256": "6d0147bb347eb61fa81c304cc68c7fd69d447e91870357a549b47e1d0fd77242"
+      },
+      {
+        "path": "ckpts/ss_flow_img_dit_1_3B_64_bf16_mv.json",
+        "size": 503,
+        "sha256": null
+      },
+      {
+        "path": "ckpts/ss_flow_img_dit_1_3B_64_bf16_mv.safetensors",
+        "size": 5359822584,
+        "sha256": "e7ce63050e317cff70ed2c6dfcc549e668cd948c47347f31985fd4996b4ce5a6"
+      },
+      {
+        "path": "ckpts/slat_flow_img2shape_dit_1_3B_1024_bf16.json",
+        "size": 535,
+        "sha256": null
+      },
+      {
+        "path": "ckpts/slat_flow_img2shape_dit_1_3B_1024_bf16.safetensors",
+        "size": 5546764048,
+        "sha256": "3e6d1df0e62bc5bc863320d1d63d6b996235eef4abb8b851e878c88f316369f1"
+      },
+      {
+        "path": "ckpts/slat_flow_img2shape_dit_1_3B_1024_bf16_mv.json",
+        "size": 535,
+        "sha256": null
+      },
+      {
+        "path": "ckpts/slat_flow_img2shape_dit_1_3B_1024_bf16_mv.safetensors",
+        "size": 5546764048,
+        "sha256": "37b75c8f0f089a7e3e825dec035ac83b9c989efd14d0c8ada6a620d2be561c71"
+      },
+      {
+        "path": "ckpts/slat_flow_img2shape_dit_1_3B_512_bf16.json",
+        "size": 535,
+        "sha256": null
+      },
+      {
+        "path": "ckpts/slat_flow_img2shape_dit_1_3B_512_bf16.safetensors",
+        "size": 5546764048,
+        "sha256": "63569838c1da93f010e2fa805b202ecf802cc758830230abac202a81b70e5b45"
+      },
+      {
+        "path": "ckpts/slat_flow_img2shape_dit_1_3B_512_bf16_mv.json",
+        "size": 535,
+        "sha256": null
+      },
+      {
+        "path": "ckpts/slat_flow_img2shape_dit_1_3B_512_bf16_mv.safetensors",
+        "size": 5546764048,
+        "sha256": "043a0d7fc7ee81792fcb22f836c91f5aaf69f4fda15e25c38488db13dd7b77ec"
+      }
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "_comment": "MV-Adapter pins (local multi-view generator inside the studio ComfyUI). Hashes of Hugging Face files come from the HF file listing (lfs.oid = sha256); the installer re-checks them against the live listing when it is reachable.",
+  "generated": "2026-10-14",
+  "node": {
+    "version": "1.0.2",
+    "commit": "9d6d8afeff135d81a31f16dde5291d8b40dbb0a4",
+    "url": "https://github.com/huanngzh/ComfyUI-MVAdapter/archive/9d6d8afeff135d81a31f16dde5291d8b40dbb0a4.zip",
+    "license": "Apache-2.0",
+    "patchDir": "patch",
+    "removeDirs": [
+      "assets"
+    ]
+  },
+  "repo": "huanngzh/mv-adapter",
+  "files": [
+    {
+      "path": "mvadapter_i2mv_sdxl.safetensors",
+      "size": 3602537816,
+      "sha256": "260e486d507247db30601d22de317e3f9c07f75a29912d43ed5c3a4aab4db4c9"
+    }
+  ],
+  "modules": {
+    "diffusers": "diffusers==0.40.0",
+    "accelerate": "accelerate==1.15.0",
+    "peft": "peft==0.21.2",
+    "timm": "timm==1.0.30",
+    "trimesh": "trimesh==5.1.1",
+    "antlr4": "antlr4-python3-runtime==4.9.3",
+    "importlib_metadata": "importlib_metadata==9.0.1",
+    "zipp": "zipp==4.1.1",
+    "omegaconf": "omegaconf",
+    "einops": "einops",
+    "kornia": "kornia",
+    "skimage": "scikit-image",
+    "cv2": "opencv-python-headless",
+    "safetensors": "safetensors"
+  }
+}

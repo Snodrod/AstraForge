@@ -1,0 +1,350 @@
+{
+  "version": 1,
+  "source": "https://simonschreibt.notion.site/Textures-for-VFX-Database-2c72eccccfa84a0eae927d778ad746cc",
+  "sourceNote": "The Texture Generators section of Simon Schreibt's Textures for VFX database (GDC). The programs themselves are not part of AstraForge: scripts/vfx/Install-VfxTools.ps1 downloads them from the official sites.",
+  "kinds": {
+    "desktop": "Desktop programs",
+    "installer": "Programs with an installer",
+    "web-local": "Web generators inside the studio (work offline)",
+    "file": "Ready-made templates",
+    "web-online": "Online generators",
+    "store": "Free, but downloaded manually",
+    "paid": "Paid and for Substance Designer",
+    "guide": "Tips and tutorials"
+  },
+  "tools": [
+    {
+      "id": "material-maker",
+      "name": "Material Maker 1.7",
+      "author": "RodZilla",
+      "kind": "desktop",
+      "license": "MIT",
+      "url": "https://rodzilla.itch.io/",
+      "tags": ["procedural", "noise", "free"],
+      "ru": "Node-based procedural texture and material generator built on Godot: noise, masks, PBR, PNG export.",
+      "local": { "exe": "apps/material-maker/material_maker.exe" },
+      "download": { "url": "https://github.com/RodZill4/material-maker/releases/download/1.7/material_maker_1_7_windows.zip", "unzip": "apps/material-maker", "strip": "material_maker_1_7_windows" }
+    },
+    {
+      "id": "flowmap-painter",
+      "name": "FlowMap Painter 0.9.2",
+      "author": "TECK LEE TA",
+      "kind": "desktop",
+      "license": "freeware",
+      "url": "http://teckartist.com/?page_id=107",
+      "tags": ["flow"],
+      "ru": "Brush painting of flow maps for water, smoke and magic streams.",
+      "local": { "exe": "apps/flowmap-painter/FlowMapPainter.exe" },
+      "download": { "url": "https://teckArtist.com/ToolsnStuff/FlowMapPainter-0.9.2-win32.zip", "unzip": "apps/flowmap-painter", "strip": "FlowMapPainter-0.9.2-win32" }
+    },
+    {
+      "id": "pseudo-volume",
+      "name": "Pseudo Volume Generator 2.7",
+      "author": "Acetix",
+      "kind": "desktop",
+      "license": "itch.io, pay what you want",
+      "url": "https://acetix.itch.io/pseudo-volume-generator",
+      "tags": ["volume", "smoke", "cloud"],
+      "ru": "Generator of pseudo-volume 3D textures (slice sheets) for clouds and smoke.",
+      "local": { "exe": "apps/pseudo-volume/*.exe" },
+      "download": { "manual": "https://acetix.itch.io/pseudo-volume-generator", "unzip": "apps/pseudo-volume", "strip": "3D Volume Generator 2.7 Win", "note": "itch.io serves the file only through the Download Now button, then No thanks, just take me to the downloads. Put 3D Volume Generator 2.7 Win.zip in downloads and run the install again." }
+    },
+    {
+      "id": "pixaflux",
+      "name": "PixaFlux",
+      "author": "Diego Castano",
+      "kind": "installer",
+      "license": "freeware",
+      "url": "http://pixaflux.com",
+      "tags": ["procedural", "noise", "free"],
+      "ru": "Node-based image editor and texture builder: noise, masks, normals, PBR.",
+      "local": { "installer": "downloads/PixaFlux.20260528.exe", "find": { "hints": ["PixaFlux"], "exe": "PixaFlux.exe" }, "extras": ["downloads/pixaflux_blender_addon.zip", "apps/pixaflux-samples"] },
+      "download": { "url": "http://pixaflux.com/bin/PixaFlux.20260528.exe", "file": "downloads/PixaFlux.20260528.exe", "extra": [ { "url": "http://pixaflux.com/blender/pixaflux.zip", "file": "downloads/pixaflux_blender_addon.zip" }, { "url": "http://pixaflux.com/wiki/samples/Samples.zip", "unzip": "apps/pixaflux-samples" } ] }
+    },
+    {
+      "id": "kumoworks",
+      "name": "KumoWorks 1.0.1",
+      "author": "OpenToonz",
+      "kind": "installer",
+      "license": "BSD-3-Clause",
+      "url": "https://github.com/opentoonz/kumoworks",
+      "tags": ["cloud", "smoke", "dust"],
+      "ru": "Generator of clouds, smoke and dust: renders volumetric clouds to images and sequences.",
+      "local": { "installer": "downloads/KumoWorksSetup.exe", "find": { "hints": ["KumoWorks", "OpenToonz"], "exe": "KumoWorks.exe" } },
+      "download": { "url": "https://github.com/opentoonz/kumoworks/releases/download/v1.0.1/KumoWorksSetup.exe", "file": "downloads/KumoWorksSetup.exe" }
+    },
+    {
+      "id": "slate",
+      "name": "Slate",
+      "author": "FacedownFX",
+      "kind": "installer",
+      "license": "freeware",
+      "url": "https://www.facedownfx.com/downloadoptions",
+      "tags": ["flow", "flipbook"],
+      "ru": "Builds flipbooks and sprite sheets from sequences, with preview and flow texture preparation.",
+      "local": { "installer": "downloads/Slate_Installer.exe", "find": { "hints": ["Slate", "FacedownFX"], "exe": "Slate.exe" } },
+      "download": { "url": "https://s3.eu-west-2.amazonaws.com/facedownfx/Slate/Builds/Slate_Installer.zip", "unzip": "downloads" }
+    },
+    {
+      "id": "texture-generator-online",
+      "name": "Texture Generator Online",
+      "author": "Christian Petry",
+      "kind": "web-local",
+      "license": "MIT",
+      "url": "http://cpetry.github.io/TextureGenerator-Online/",
+      "tags": ["noise", "free"],
+      "ru": "Procedural textures in the browser: noise, cells, wood, brick; saves PNG.",
+      "local": { "web": "web/texture-generator" },
+      "download": { "git": "https://github.com/cpetry/TextureGenerator-Online", "branch": "gh-pages", "dir": "web/texture-generator" }
+    },
+    {
+      "id": "normalmap-online",
+      "name": "NormalMap Online",
+      "author": "Christian Petry",
+      "kind": "web-local",
+      "license": "MIT",
+      "url": "http://cpetry.github.io/NormalMap-Online/",
+      "tags": ["normal", "free"],
+      "ru": "Normal, displacement, AO and specular maps from any image right in the browser.",
+      "local": { "web": "web/normalmap" },
+      "download": { "git": "https://github.com/cpetry/NormalMap-Online", "branch": "gh-pages", "dir": "web/normalmap" }
+    },
+    {
+      "id": "displacementx",
+      "name": "Greeble / DisplacementX",
+      "author": "satelllte",
+      "kind": "web-local",
+      "license": "GPL-3.0",
+      "url": "https://displacementx.pages.dev/",
+      "tags": ["noise", "scifi", "greeble"],
+      "ru": "Sci-fi greeble: procedural displacement maps made of rectangles and sprites.",
+      "local": { "web": "web/displacementx" },
+      "download": { "git": "https://github.com/satelllte/displacementx", "branch": "main", "dir": "web/displacementx-src", "build": "astro", "base": "/vfx-web/displacementx/", "out": "web/displacementx" }
+    },
+    {
+      "id": "neonflames",
+      "name": "Neon Flames",
+      "author": "Jonas Wagner",
+      "kind": "web-local",
+      "license": "no license: personal use only",
+      "url": "https://29a.ch/sandbox/2011/neonflames/",
+      "tags": ["flame", "abstract"],
+      "ru": "Brush painting of neon flame tongues and glowing abstractions.",
+      "local": { "web": "web/neonflames" },
+      "download": { "git": "https://github.com/jwagner/Neonflames", "branch": "master", "dir": "web/neonflames" }
+    },
+    {
+      "id": "impact-decal",
+      "name": "Impact Decal (Material Maker)",
+      "author": "PavelOliva",
+      "kind": "file",
+      "license": "CC0",
+      "url": "https://www.materialmaker.org/material?id=1008",
+      "tags": ["impact", "decal", "crater", "cc0"],
+      "ru": "Material Maker template: an impact and crater decal. Opens in Material Maker.",
+      "local": { "file": "apps/material-maker-files/impact_decal.ptex", "openWith": "material-maker" },
+      "download": { "materialMaker": 1008, "file": "apps/material-maker-files/impact_decal.ptex" }
+    },
+    {
+      "id": "effect-texture-maker",
+      "name": "Effect Texture Maker",
+      "author": "Mebiusbox Software",
+      "kind": "web-online",
+      "license": "results are CC0",
+      "url": "https://mebiusbox.github.io/contents/EffectTextureMaker/",
+      "tags": ["noise", "explosion", "cc0"],
+      "ru": "Online generator of effect textures: noise, flashes, explosions, rings; the result is CC0."
+    },
+    {
+      "id": "noise-generator",
+      "name": "Noise Generator",
+      "author": "Bubblebird Studio",
+      "kind": "web-online",
+      "license": "free online",
+      "url": "https://noisegen.bubblebirdstudio.com/",
+      "tags": ["noise"],
+      "ru": "Online generator of 2D/3D noise: Perlin, Voronoi, blue noise, normal maps."
+    },
+    {
+      "id": "flame-painter-online",
+      "name": "Flame Painter Online",
+      "author": "Escape Motions",
+      "kind": "web-online",
+      "license": "free online",
+      "url": "https://www.escapemotions.com/experiments/flame/",
+      "tags": ["flame", "fire", "abstract"],
+      "ru": "Online brush painting of flames and fiery abstractions."
+    },
+    {
+      "id": "tgen",
+      "name": "Seamless Texture Generator (tgen.js)",
+      "author": "Tamas Schalk",
+      "kind": "web-online",
+      "license": "online demo",
+      "url": "https://texture-generator.com/generator/demo/",
+      "tags": ["noise"],
+      "ru": "Online demo of a seamless procedural texture generator."
+    },
+    {
+      "id": "fateloom",
+      "name": "Fateloom VFX Texture Generator",
+      "author": "Fateloom",
+      "kind": "web-online",
+      "license": "free online",
+      "url": "https://vfxtexturegenerator.fateloom.io/",
+      "tags": ["cloud", "noise", "free"],
+      "ru": "Online generator of clouds and noise for VFX. The site did not open on 2026-10-16.",
+      "unavailable": true
+    },
+    {
+      "id": "orange-box-seamless",
+      "name": "Free Seamless Textures Generator",
+      "author": "the orange box",
+      "kind": "store",
+      "license": "free, through the store cart",
+      "url": "https://www.the-orange-box.com/portfolio_page/free-seamless-texture/",
+      "tags": ["photoshop"],
+      "ru": "Photoshop action: a seamless tile in one click. Downloaded after a free order."
+    },
+    {
+      "id": "smoke-trail-generator",
+      "name": "Smoke Trail Generator",
+      "author": "Gavin Finley",
+      "kind": "store",
+      "license": "Gumroad, $0+",
+      "url": "https://velksy.gumroad.com/l/trailgenerator",
+      "tags": ["substance designer", "smoke", "dust"],
+      "ru": "Substance Designer graph for smoke trails and dust. On Gumroad you can enter $0."
+    },
+    {
+      "id": "leaking-generator",
+      "name": "Leaking Generator",
+      "author": "Martin Schmitter",
+      "kind": "store",
+      "license": "free; the Flipped Normals link returns 404",
+      "url": "https://flippednormals.com/product/leaking-generator-commercial-license-11592",
+      "tags": ["substance designer", "dirt"],
+      "ru": "Streak and grime generator for Substance Designer. The product page no longer opens.",
+      "unavailable": true
+    },
+    {
+      "id": "matrix-generator",
+      "name": "Matrix Generator",
+      "author": "Martin Schmitter",
+      "kind": "store",
+      "license": "free; the Flipped Normals link returns 404",
+      "url": "https://flippednormals.com/product/matrix-generator-commercial-license-11591",
+      "tags": ["substance designer", "abstract"],
+      "ru": "Generator of abstract matrix patterns for Substance Designer. The product page no longer opens.",
+      "unavailable": true
+    },
+    {
+      "id": "splash-generators",
+      "name": "Splash Textures / Blender Generators",
+      "author": "Martin Schmitter",
+      "kind": "paid",
+      "license": "paid; the Flipped Normals link returns 404",
+      "url": "https://flippednormals.com/product/various-splatter-generators-textures-personal-studio-license-11435",
+      "tags": ["splash", "water", "substance designer"],
+      "ru": "A set of splash textures and generators for Blender and Substance Designer.",
+      "unavailable": true
+    },
+    {
+      "id": "sd-quicktip-bundle",
+      "name": "Substance Designer Quicktip Bundle V1",
+      "author": "Martin Schmitter",
+      "kind": "paid",
+      "license": "paid; the Flipped Normals link returns 404",
+      "url": "https://flippednormals.com/product/substance-designer-quicktip-bundle-v1-personal-studio-license-11437",
+      "tags": ["substance designer", "noise", "abstract"],
+      "ru": "A set of Substance Designer graphs for noise and abstract textures.",
+      "unavailable": true
+    },
+    {
+      "id": "sd-spiderweb",
+      "name": "Substance Designer Spiderweb Generator",
+      "author": "Martin Schmitter",
+      "kind": "paid",
+      "license": "$10, ArtStation",
+      "url": "https://www.artstation.com/marketplace/p/Y78m/substance-designer-spiderweb-generator",
+      "tags": ["spiderweb", "substance designer"],
+      "ru": "Cobweb generator for Substance Designer."
+    },
+    {
+      "id": "ice-pack",
+      "name": "Ice Pack",
+      "author": "Dete Art Resources",
+      "kind": "paid",
+      "license": "$10, Gumroad",
+      "url": "https://dete.gumroad.com/l/deteicesub",
+      "tags": ["substance designer", "ice"],
+      "ru": "Ice textures and a Substance Designer graph."
+    },
+    {
+      "id": "sd-tools-bruno",
+      "name": "Substance Designer Tools",
+      "author": "Bruno Afonseca",
+      "kind": "paid",
+      "license": "Gumroad",
+      "url": "https://3dbruno.gumroad.com/?sort=page_layout",
+      "tags": ["substance designer", "caustics", "cracks"],
+      "ru": "Substance Designer graphs for caustics and cracks."
+    },
+    {
+      "id": "sd-node-pack-thiger",
+      "name": "Substance Node Pack",
+      "author": "Daniel Thiger",
+      "kind": "paid",
+      "license": "via the author link",
+      "url": "https://www.artstation.com/artwork/yDGWOQ",
+      "tags": ["substance designer", "cracks", "stone", "noise"],
+      "ru": "A set of Substance Designer nodes: cracks, stone, noise."
+    },
+    {
+      "id": "unreal-decal-designer",
+      "name": "Unreal Decal Designer",
+      "author": "RonanMahonArt",
+      "kind": "paid",
+      "license": "paid, Unreal Engine only",
+      "url": "https://www.unrealengine.com/marketplace/en-US/product/7e57ce8286ef4bc3b1fd496bb122b2b3",
+      "tags": ["unreal", "splash", "blood"],
+      "ru": "Generator of splash, liquid and blood decals inside Unreal Engine."
+    },
+    {
+      "id": "blood-sd",
+      "name": "Blood (Substance Designer)",
+      "author": "Bruno Afonseca",
+      "kind": "guide",
+      "url": "https://80.lv/articles/useful-little-tools-for-substance-designer/",
+      "tags": ["substance designer", "blood", "splatter"],
+      "ru": "An 80.lv article on Substance Designer graphs for blood, splashes and streaks."
+    },
+    {
+      "id": "worldmachine-noise",
+      "name": "World Machine for noise textures",
+      "author": "jqarlsson",
+      "kind": "guide",
+      "url": "https://realtimevfx.com/t/make-noise-textures-with-world-machine/12451",
+      "tags": ["noise", "worldmachine", "procedural"],
+      "ru": "Tutorial: noise textures for VFX from the World Machine terrain generator."
+    },
+    {
+      "id": "krita-wispy",
+      "name": "Haze in Krita",
+      "author": "realtimevfx.com",
+      "kind": "guide",
+      "url": "https://realtimevfx.com/t/solve-how-do-you-make-this-texture/4325/5",
+      "tags": ["krita", "paint", "smoke", "dust"],
+      "ru": "A forum tip: thin haze and dust with Krita brushes."
+    },
+    {
+      "id": "spiderweb-tip",
+      "name": "Cobweb from n-gons",
+      "author": "Cristobal Vila Laguarta",
+      "kind": "guide",
+      "url": "https://www.linkedin.com/posts/cristobal-vila-laguarta_an-extremely-simple-tip-to-create-n-gon-patterns-activity-7162848385673162752-ZkWR",
+      "tags": ["procedural", "substance designer", "spiderweb"],
+      "ru": "A short tip: a cobweb pattern from n-gons in Substance Designer."
+    }
+  ]
+}

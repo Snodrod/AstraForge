@@ -1,0 +1,17 @@
+torch>=2.1.1
+torchvision>=0.16.1
+diffusers==0.31.0
+transformers==4.46.3
+peft
+numpy>=1.26.2
+huggingface_hub==0.24.6
+accelerate==1.1.1
+opencv-python
+safetensors
+pillow
+omegaconf
+trimesh
+einops
+timm
+kornia
+scikit-image

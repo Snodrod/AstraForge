@@ -1,0 +1,21 @@
+/* Loaded with the studio (src/forge/ForgeTab.jsx), not with the lazy wizard chunk.
+   The 9th studio tab (Forge): 5 columns keep the tab block at two rows. */
+.left-panel > .workflow-tabs {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.left-panel > .workflow-tabs button span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Placeholder while the wizard chunk loads. */
+.forge-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 16px;
+  color: var(--muted);
+  font-size: 12px;
+}

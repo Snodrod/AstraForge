@@ -1,0 +1,315 @@
+{
+    "last_node_id": 10,
+    "last_link_id": 15,
+    "nodes": [
+        {
+            "id": 4,
+            "type": "LdmVaeLoader",
+            "pos": [
+                247.52098083496094,
+                558.488525390625
+            ],
+            "size": [
+                315,
+                58
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "AUTOENCODER",
+                    "type": "AUTOENCODER",
+                    "links": [
+                        14
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "LdmVaeLoader"
+            },
+            "widgets_values": [
+                "sdxl_vae.safetensors"
+            ]
+        },
+        {
+            "id": 10,
+            "type": "DiffusersMVModelMakeup",
+            "pos": [
+                651.51123046875,
+                328.2811584472656
+            ],
+            "size": [
+                315,
+                170
+            ],
+            "flags": {},
+            "order": 3,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "pipeline",
+                    "type": "PIPELINE",
+                    "link": 12
+                },
+                {
+                    "name": "scheduler",
+                    "type": "SCHEDULER",
+                    "link": 13
+                },
+                {
+                    "name": "autoencoder",
+                    "type": "AUTOENCODER",
+                    "link": 14
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "PIPELINE",
+                    "type": "PIPELINE",
+                    "links": [
+                        15
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVModelMakeup"
+            },
+            "widgets_values": [
+                true,
+                "huanngzh/mv-adapter",
+                "mvadapter_t2mv_sdxl.safetensors",
+                6
+            ]
+        },
+        {
+            "id": 8,
+            "type": "PreviewImage",
+            "pos": [
+                1521.929443359375,
+                102.87110137939453
+            ],
+            "size": [
+                337.5841064453125,
+                545.9476318359375
+            ],
+            "flags": {},
+            "order": 5,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "images",
+                    "type": "IMAGE",
+                    "link": 7
+                }
+            ],
+            "outputs": [],
+            "properties": {
+                "Node name for S&R": "PreviewImage"
+            },
+            "widgets_values": []
+        },
+        {
+            "id": 9,
+            "type": "DiffusersMVSchedulerLoader",
+            "pos": [
+                236.58033752441406,
+                346.41693115234375
+            ],
+            "size": [
+                327.5999755859375,
+                130
+            ],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "pipeline",
+                    "type": "PIPELINE",
+                    "link": 9
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "SCHEDULER",
+                    "type": "SCHEDULER",
+                    "links": [
+                        13
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVSchedulerLoader"
+            },
+            "widgets_values": [
+                "DDIM",
+                true,
+                "interpolated",
+                8
+            ]
+        },
+        {
+            "id": 1,
+            "type": "LdmPipelineLoader",
+            "pos": [
+                245.8949432373047,
+                130.0254364013672
+            ],
+            "size": [
+                315,
+                122
+            ],
+            "flags": {},
+            "order": 1,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "PIPELINE",
+                    "type": "PIPELINE",
+                    "links": [
+                        9,
+                        12
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "AUTOENCODER",
+                    "type": "AUTOENCODER",
+                    "links": null
+                },
+                {
+                    "name": "SCHEDULER",
+                    "type": "SCHEDULER",
+                    "links": null
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "LdmPipelineLoader"
+            },
+            "widgets_values": [
+                "sd_xl_base_1.0.safetensors",
+                "MVAdapterT2MVSDXLPipeline"
+            ]
+        },
+        {
+            "id": 7,
+            "type": "DiffusersMVSampler",
+            "pos": [
+                1050.723388671875,
+                218.12826538085938
+            ],
+            "size": [
+                400,
+                314
+            ],
+            "flags": {},
+            "order": 4,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "pipeline",
+                    "type": "PIPELINE",
+                    "link": 15
+                },
+                {
+                    "name": "reference_image",
+                    "type": "IMAGE",
+                    "link": null,
+                    "shape": 7
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": [
+                        7
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVSampler"
+            },
+            "widgets_values": [
+                6,
+                "an astronaut riding a horse",
+                "watermark, ugly, deformed, noisy, blurry, low contrast",
+                768,
+                768,
+                50,
+                7,
+                1081631136394980,
+                "randomize"
+            ]
+        }
+    ],
+    "links": [
+        [
+            7,
+            7,
+            0,
+            8,
+            0,
+            "IMAGE"
+        ],
+        [
+            9,
+            1,
+            0,
+            9,
+            0,
+            "PIPELINE"
+        ],
+        [
+            12,
+            1,
+            0,
+            10,
+            0,
+            "PIPELINE"
+        ],
+        [
+            13,
+            9,
+            0,
+            10,
+            1,
+            "SCHEDULER"
+        ],
+        [
+            14,
+            4,
+            0,
+            10,
+            2,
+            "AUTOENCODER"
+        ],
+        [
+            15,
+            10,
+            0,
+            7,
+            0,
+            "PIPELINE"
+        ]
+    ],
+    "groups": [],
+    "config": {},
+    "extra": {
+        "ds": {
+            "scale": 0.8264462809917354,
+            "offset": [
+                227.13784724632666,
+                76.3208087416891
+            ]
+        }
+    },
+    "version": 0.4
+}

@@ -1,0 +1,30 @@
+node_modules/
+dist/
+*.glb
+*.zip
+*.pyc
+__pycache__/
+.env
+data/vault.json
+data/models/
+data/assets/
+data/views/
+data/jobs/
+data/projects/
+data/exports/
+data/tripo/
+data/python/
+data/library/
+data/library.moved-*/
+data/runtime/*
+!data/runtime/custom_nodes/
+data/runtime/custom_nodes/**/__pycache__/
+# installer: downloaded files and machine-local paths
+/runtime/
+/library/
+config/paths.json
+installer/downloads/
+installer/install.log
+
+# user settings written by the app
+data/config.json

@@ -1,0 +1,314 @@
+{
+    "last_node_id": 7,
+    "last_link_id": 6,
+    "nodes": [
+        {
+            "id": 1,
+            "type": "DiffusersMVPipelineLoader",
+            "pos": [
+                324.3054504394531,
+                130.34339904785156
+            ],
+            "size": [
+                315,
+                122
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "PIPELINE",
+                    "type": "PIPELINE",
+                    "links": [
+                        1,
+                        2
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "AUTOENCODER",
+                    "type": "AUTOENCODER",
+                    "links": null
+                },
+                {
+                    "name": "SCHEDULER",
+                    "type": "SCHEDULER",
+                    "links": null
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVPipelineLoader"
+            },
+            "widgets_values": [
+                "stabilityai/stable-diffusion-xl-base-1.0",
+                "MVAdapterT2MVSDXLPipeline"
+            ]
+        },
+        {
+            "id": 3,
+            "type": "DiffusersMVSchedulerLoader",
+            "pos": [
+                320.6045227050781,
+                323.5510559082031
+            ],
+            "size": [
+                327.5999755859375,
+                130
+            ],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "pipeline",
+                    "type": "PIPELINE",
+                    "link": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "SCHEDULER",
+                    "type": "SCHEDULER",
+                    "links": [
+                        3
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVSchedulerLoader"
+            },
+            "widgets_values": [
+                "DDPM",
+                true,
+                "interpolated",
+                8
+            ]
+        },
+        {
+            "id": 2,
+            "type": "DiffusersMVVaeLoader",
+            "pos": [
+                328.6159362792969,
+                541.3416748046875
+            ],
+            "size": [
+                315,
+                58
+            ],
+            "flags": {},
+            "order": 1,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "AUTOENCODER",
+                    "type": "AUTOENCODER",
+                    "links": [
+                        4
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVVaeLoader"
+            },
+            "widgets_values": [
+                "madebyollin/sdxl-vae-fp16-fix"
+            ]
+        },
+        {
+            "id": 4,
+            "type": "DiffusersMVModelMakeup",
+            "pos": [
+                728.7667846679688,
+                261.0943298339844
+            ],
+            "size": [
+                315,
+                170
+            ],
+            "flags": {},
+            "order": 3,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "pipeline",
+                    "type": "PIPELINE",
+                    "link": 2
+                },
+                {
+                    "name": "scheduler",
+                    "type": "SCHEDULER",
+                    "link": 3
+                },
+                {
+                    "name": "autoencoder",
+                    "type": "AUTOENCODER",
+                    "link": 4
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "PIPELINE",
+                    "type": "PIPELINE",
+                    "links": [
+                        5
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVModelMakeup"
+            },
+            "widgets_values": [
+                true,
+                "huanngzh/mv-adapter",
+                "mvadapter_t2mv_sdxl.safetensors",
+                6
+            ]
+        },
+        {
+            "id": 6,
+            "type": "DiffusersMVSampler",
+            "pos": [
+                1124.235595703125,
+                195.65020751953125
+            ],
+            "size": [
+                400,
+                314
+            ],
+            "flags": {},
+            "order": 4,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "pipeline",
+                    "type": "PIPELINE",
+                    "link": 5
+                },
+                {
+                    "name": "reference_image",
+                    "type": "IMAGE",
+                    "link": null,
+                    "shape": 7
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": [
+                        6
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVSampler"
+            },
+            "widgets_values": [
+                6,
+                "an astronaut riding a horse",
+                "watermark, ugly, deformed, noisy, blurry, low contrast",
+                768,
+                768,
+                50,
+                7,
+                26340599063291,
+                "randomize"
+            ]
+        },
+        {
+            "id": 7,
+            "type": "PreviewImage",
+            "pos": [
+                1592.892822265625,
+                111.47964477539062
+            ],
+            "size": [
+                391.566162109375,
+                532.7274780273438
+            ],
+            "flags": {},
+            "order": 5,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "images",
+                    "type": "IMAGE",
+                    "link": 6
+                }
+            ],
+            "outputs": [],
+            "properties": {
+                "Node name for S&R": "PreviewImage"
+            }
+        }
+    ],
+    "links": [
+        [
+            1,
+            1,
+            0,
+            3,
+            0,
+            "PIPELINE"
+        ],
+        [
+            2,
+            1,
+            0,
+            4,
+            0,
+            "PIPELINE"
+        ],
+        [
+            3,
+            3,
+            0,
+            4,
+            1,
+            "SCHEDULER"
+        ],
+        [
+            4,
+            2,
+            0,
+            4,
+            2,
+            "AUTOENCODER"
+        ],
+        [
+            5,
+            4,
+            0,
+            6,
+            0,
+            "PIPELINE"
+        ],
+        [
+            6,
+            6,
+            0,
+            7,
+            0,
+            "IMAGE"
+        ]
+    ],
+    "groups": [],
+    "config": {},
+    "extra": {
+        "ds": {
+            "scale": 0.8264462809917354,
+            "offset": [
+                137.93343318382662,
+                114.90373842918925
+            ]
+        }
+    },
+    "version": 0.4
+}

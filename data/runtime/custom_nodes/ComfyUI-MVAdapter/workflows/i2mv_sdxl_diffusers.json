@@ -1,0 +1,489 @@
+{
+    "last_node_id": 11,
+    "last_link_id": 10,
+    "nodes": [
+        {
+            "id": 6,
+            "type": "DiffusersMVModelMakeup",
+            "pos": [
+                944.978759765625,
+                234.29940795898438
+            ],
+            "size": [
+                315,
+                170
+            ],
+            "flags": {},
+            "order": 7,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "pipeline",
+                    "type": "PIPELINE",
+                    "link": 2
+                },
+                {
+                    "name": "scheduler",
+                    "type": "SCHEDULER",
+                    "link": 3
+                },
+                {
+                    "name": "autoencoder",
+                    "type": "AUTOENCODER",
+                    "link": 4
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "PIPELINE",
+                    "type": "PIPELINE",
+                    "links": [
+                        5
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVModelMakeup"
+            },
+            "widgets_values": [
+                true,
+                "huanngzh/mv-adapter",
+                "mvadapter_i2mv_sdxl.safetensors",
+                6
+            ]
+        },
+        {
+            "id": 5,
+            "type": "DiffusersMVVaeLoader",
+            "pos": [
+                519.3989868164062,
+                334.48828125
+            ],
+            "size": [
+                315,
+                58
+            ],
+            "flags": {},
+            "order": 0,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "AUTOENCODER",
+                    "type": "AUTOENCODER",
+                    "links": [
+                        4
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVVaeLoader"
+            },
+            "widgets_values": [
+                "madebyollin/sdxl-vae-fp16-fix"
+            ]
+        },
+        {
+            "id": 3,
+            "type": "DiffusersMVSchedulerLoader",
+            "pos": [
+                515.5944213867188,
+                125.65931701660156
+            ],
+            "size": [
+                327.5999755859375,
+                130
+            ],
+            "flags": {},
+            "order": 5,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "pipeline",
+                    "type": "PIPELINE",
+                    "link": 1
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "SCHEDULER",
+                    "type": "SCHEDULER",
+                    "links": [
+                        3
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVSchedulerLoader"
+            },
+            "widgets_values": [
+                "DDPM",
+                true,
+                "interpolated",
+                8
+            ]
+        },
+        {
+            "id": 2,
+            "type": "BiRefNet",
+            "pos": [
+                521.8474731445312,
+                -224.9335479736328
+            ],
+            "size": [
+                315,
+                58
+            ],
+            "flags": {},
+            "order": 1,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "FUNCTION",
+                    "type": "FUNCTION",
+                    "links": [
+                        6
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "BiRefNet"
+            },
+            "widgets_values": [
+                "ZhengPeng7/BiRefNet"
+            ]
+        },
+        {
+            "id": 8,
+            "type": "LoadImage",
+            "pos": [
+                940.2247314453125,
+                -300.4877014160156
+            ],
+            "size": [
+                315,
+                314
+            ],
+            "flags": {},
+            "order": 2,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": [
+                        7
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "MASK",
+                    "type": "MASK",
+                    "links": null
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "LoadImage"
+            },
+            "widgets_values": [
+                "已移除背景的image (1).jpeg",
+                "image"
+            ]
+        },
+        {
+            "id": 10,
+            "type": "PreviewImage",
+            "pos": [
+                1337.1131591796875,
+                -263.8614501953125
+            ],
+            "size": [
+                313.3982849121094,
+                246
+            ],
+            "flags": {},
+            "order": 6,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "images",
+                    "type": "IMAGE",
+                    "link": 8
+                }
+            ],
+            "outputs": [],
+            "properties": {
+                "Node name for S&R": "PreviewImage"
+            },
+            "widgets_values": []
+        },
+        {
+            "id": 9,
+            "type": "ImagePreprocessor",
+            "pos": [
+                944.402099609375,
+                75.06153869628906
+            ],
+            "size": [
+                315,
+                102
+            ],
+            "flags": {},
+            "order": 4,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "remove_bg_fn",
+                    "type": "FUNCTION",
+                    "link": 6
+                },
+                {
+                    "name": "image",
+                    "type": "IMAGE",
+                    "link": 7
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": [
+                        8,
+                        9
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "ImagePreprocessor"
+            },
+            "widgets_values": [
+                768,
+                768
+            ]
+        },
+        {
+            "id": 7,
+            "type": "DiffusersMVSampler",
+            "pos": [
+                1324.947265625,
+                70.82652282714844
+            ],
+            "size": [
+                400,
+                314
+            ],
+            "flags": {},
+            "order": 8,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "pipeline",
+                    "type": "PIPELINE",
+                    "link": 5
+                },
+                {
+                    "name": "reference_image",
+                    "type": "IMAGE",
+                    "link": 9,
+                    "shape": 7
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "IMAGE",
+                    "type": "IMAGE",
+                    "links": [
+                        10
+                    ],
+                    "slot_index": 0
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVSampler"
+            },
+            "widgets_values": [
+                6,
+                "A decorative figurine of a young anime-style girl",
+                "watermark, ugly, deformed, noisy, blurry, low contrast",
+                768,
+                768,
+                50,
+                3,
+                490054611146870,
+                "randomize"
+            ]
+        },
+        {
+            "id": 11,
+            "type": "PreviewImage",
+            "pos": [
+                1778.79638671875,
+                -213.63694763183594
+            ],
+            "size": [
+                365.73077392578125,
+                534.254150390625
+            ],
+            "flags": {},
+            "order": 9,
+            "mode": 0,
+            "inputs": [
+                {
+                    "name": "images",
+                    "type": "IMAGE",
+                    "link": 10
+                }
+            ],
+            "outputs": [],
+            "properties": {
+                "Node name for S&R": "PreviewImage"
+            },
+            "widgets_values": []
+        },
+        {
+            "id": 1,
+            "type": "DiffusersMVPipelineLoader",
+            "pos": [
+                519.635498046875,
+                -73.85352325439453
+            ],
+            "size": [
+                315,
+                122
+            ],
+            "flags": {},
+            "order": 3,
+            "mode": 0,
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "PIPELINE",
+                    "type": "PIPELINE",
+                    "links": [
+                        1,
+                        2
+                    ],
+                    "slot_index": 0
+                },
+                {
+                    "name": "AUTOENCODER",
+                    "type": "AUTOENCODER",
+                    "links": null
+                },
+                {
+                    "name": "SCHEDULER",
+                    "type": "SCHEDULER",
+                    "links": null
+                }
+            ],
+            "properties": {
+                "Node name for S&R": "DiffusersMVPipelineLoader"
+            },
+            "widgets_values": [
+                "stabilityai/stable-diffusion-xl-base-1.0",
+                "MVAdapterI2MVSDXLPipeline"
+            ]
+        }
+    ],
+    "links": [
+        [
+            1,
+            1,
+            0,
+            3,
+            0,
+            "PIPELINE"
+        ],
+        [
+            2,
+            1,
+            0,
+            6,
+            0,
+            "PIPELINE"
+        ],
+        [
+            3,
+            3,
+            0,
+            6,
+            1,
+            "SCHEDULER"
+        ],
+        [
+            4,
+            5,
+            0,
+            6,
+            2,
+            "AUTOENCODER"
+        ],
+        [
+            5,
+            6,
+            0,
+            7,
+            0,
+            "PIPELINE"
+        ],
+        [
+            6,
+            2,
+            0,
+            9,
+            0,
+            "FUNCTION"
+        ],
+        [
+            7,
+            8,
+            0,
+            9,
+            1,
+            "IMAGE"
+        ],
+        [
+            8,
+            9,
+            0,
+            10,
+            0,
+            "IMAGE"
+        ],
+        [
+            9,
+            9,
+            0,
+            7,
+            1,
+            "IMAGE"
+        ],
+        [
+            10,
+            7,
+            0,
+            11,
+            0,
+            "IMAGE"
+        ]
+    ],
+    "groups": [],
+    "config": {},
+    "extra": {
+        "ds": {
+            "scale": 0.8264462809917354,
+            "offset": [
+                -46.02437931617331,
+                392.2111603041893
+            ]
+        }
+    },
+    "version": 0.4
+}
