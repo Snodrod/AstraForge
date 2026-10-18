@@ -65,6 +65,8 @@ API keys for OpenAI, Anthropic and Tripo are optional. Enter them in the app's *
 2. Double-click **Install AstraForge.cmd** and answer the wizard's questions. It scans your PC, shows what is missing with sizes and licences, and downloads everything into this same folder (`runtime\`, `data\models\`). An interrupted download continues on the next run. A desktop shortcut **AstraForge** is created at the end.
 3. Start the studio with **Start.cmd**.
 
+No git? Download **AstraForge-Setup-0.3.0.exe** from [Releases](https://github.com/Snodrod/AstraForge/releases/latest), run it and choose a folder: it unpacks the app and starts the same wizard. The file is not code-signed, so Windows SmartScreen may warn you: click *More info → Run anyway*.
+
 The installer writes the paths it finds to `config\paths.json`, and `Start.cmd` reads them from there. Command-line options of `installer\Install.ps1`:
 
 - `-ScanOnly`: only inspect the computer;
