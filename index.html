@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AstraForge — локальная 3D-студия для игр</title>
+<meta name="description" content="AstraForge — бесплатная локальная 3D-студия: концепт → 3D-модель → риг → анимации → эффекты → Godot и спрайты. Скачать установщик и подписка на обновления.">
+<meta property="og:title" content="AstraForge — локальная 3D-студия для игр">
+<meta property="og:description" content="Бесплатно, MIT. Концепт → 3D → риг → анимации → эффекты → Godot.">
+<meta property="og:image" content="https://snodrod.github.io/AstraForge/img/studio.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#050605; --card:rgba(255,255,255,.05); --line:rgba(255,255,255,.12); --ink:#f2f4ef; --dim:#9aa39a; --lime:#c8f169; --amber:#ffbd68; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--ink); font-family:Inter,system-ui,sans-serif; line-height:1.55; }
+  body::before { content:""; position:fixed; inset:0; pointer-events:none;
+    background:radial-gradient(900px 500px at 50% -10%, rgba(200,241,105,.16), transparent 70%); }
+  main { max-width:1040px; margin:0 auto; padding:56px 20px 80px; position:relative; }
+  .brand { font-weight:800; letter-spacing:-.02em; font-size:20px; }
+  .brand span { color:var(--dim); font-weight:600; }
+  h1 { font-size:clamp(38px,7vw,72px); line-height:1.02; letter-spacing:-.035em; font-weight:800; margin:40px 0 18px; }
+  h1 em { font-style:normal; color:var(--lime); }
+  .lead { font-size:clamp(17px,2.2vw,21px); color:var(--dim); max-width:680px; }
+  .shot { margin:40px 0 8px; border-radius:18px; border:1px solid var(--line); overflow:hidden; box-shadow:0 30px 80px rgba(0,0,0,.6); }
+  .shot img { display:block; width:100%; height:auto; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; margin-top:44px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:28px; display:flex; flex-direction:column; gap:12px; scroll-margin-top:24px; }
+  .card h2 { font-size:26px; letter-spacing:-.02em; }
+  .tag { align-self:flex-start; font-size:13px; font-weight:600; padding:5px 12px; border-radius:99px; border:1px solid var(--line); color:var(--dim); }
+  .tag.lime { color:var(--lime); border-color:rgba(200,241,105,.5); }
+  .tag.amber { color:var(--amber); border-color:rgba(255,189,104,.5); }
+  .card p, .card li { color:var(--dim); font-size:16px; }
+  .card ul { padding-left:18px; }
+  .btn { margin-top:auto; display:inline-block; text-align:center; text-decoration:none; font-weight:800; font-size:17px;
+    padding:15px 22px; border-radius:99px; background:var(--lime); color:#0b0f0c; }
+  .btn.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .btn[aria-disabled="true"] { background:rgba(255,255,255,.08); color:var(--dim); pointer-events:none; }
+  .note { font-size:14px; color:var(--dim); }
+  .links { margin-top:48px; display:flex; flex-wrap:wrap; gap:12px; }
+  .links a { color:var(--ink); text-decoration:none; border:1px solid var(--line); border-radius:99px; padding:10px 18px; font-size:15px; }
+  footer { margin-top:56px; color:var(--dim); font-size:14px; }
+  footer a { color:var(--dim); }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">AstraForge <span>· local studio</span></div>
+  <h1>3D-студия для игр<br><em>у тебя на компьютере.</em></h1>
+  <p class="lead">Концепт → 3D-модель → риг → анимации → эффекты → пакет для Godot или спрайты. Всё локально, без облака. Бесплатно, исходники открыты (MIT).</p>
+
+  <div class="shot"><img src="img/studio.jpg" alt="Интерфейс AstraForge: рыцарь с эффектом огня в сцене" width="960" height="590"></div>
+
+  <div class="grid">
+    <section class="card" id="download">
+      <span class="tag lime">Бесплатно · MIT</span>
+      <h2>Скачать установщик</h2>
+      <p>Один файл для Windows. Сам ставит Blender, 3D-движки, модели и анимации: «Быстрая» установка ≈ 30 ГБ, «Полная» ≈ 95 ГБ.</p>
+      <ul><li>Видеокарта NVIDIA, проверено на RTX 4070 12 ГБ</li><li>Windows 10/11</li></ul>
+      <a class="btn" href="https://github.com/Snodrod/AstraForge/releases/latest">Скачать с GitHub</a>
+    </section>
+
+    <section class="card" id="subscribe">
+      <span class="tag amber">5 $ в месяц</span>
+      <h2>Подписка на обновления</h2>
+      <p>Новые инструменты, движки и эффекты приходят первыми, студия обновляется сама. Ключ приходит на почту: вставь его в AstraForge → «О программе». Без подписки ничего не отключается.</p>
+      <ul><li>Автообновление из GitHub Releases</li><li>Плагин AstraForge для Claude Code</li><li>Отмена в любой момент</li></ul>
+      <a class="btn" id="sub-btn" href="#subscribe">Оформить подписку</a>
+      <p class="note" id="sub-note"></p>
+    </section>
+
+    <section class="card" id="plugin">
+      <span class="tag">Входит в подписку</span>
+      <h2>Плагин для Claude Code</h2>
+      <p>Студия как часть рабочего окна: панель с очередью заданий и команды для ассистента — «собери пачку бойцов и выгрузи в Godot».</p>
+      <a class="btn ghost" href="#subscribe">Подробнее о подписке</a>
+    </section>
+  </div>
+
+  <div class="links">
+    <a href="https://www.youtube.com/@MywayDorn">▶ Видеоинструкции на канале MyWay</a>
+    <a href="https://github.com/Snodrod/AstraForge">Исходники на GitHub</a>
+    <a href="https://dalink.to/artemdorn">Поддержать донатом</a>
+  </div>
+
+  <footer>Артём Доронин · MyWay · Dops Media. AstraForge распространяется по лицензии MIT, лицензии компонентов — в окне «О программе».</footer>
+</main>
+<script>
+  // Ссылка на оплату подписки. Пока магазин Lemon Squeezy на проверке, оплата не открыта.
+  // Когда магазин переведут в боевой режим, вставить сюда боевую ссылку из Lemon Squeezy (Share).
+  var SUB_URL = null;
+  var btn = document.getElementById('sub-btn'), note = document.getElementById('sub-note');
+  if (SUB_URL) { btn.href = SUB_URL; }
+  else {
+    btn.setAttribute('aria-disabled', 'true');
+    btn.textContent = 'Открывается в ближайшие дни';
+    note.innerHTML = 'Платёжная система проверяет магазин. Студия уже бесплатно доступна для скачивания, а поддержать автора можно <a href="https://dalink.to/artemdorn" style="color:#c8f169">донатом</a>.';
+  }
+</script>
+</body>
+</html>
