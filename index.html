@@ -45,57 +45,85 @@
 </head>
 <body>
 <main>
-  <div class="brand">AstraForge <span>· local studio</span></div>
-  <h1>3D-студия для игр<br><em>у тебя на компьютере.</em></h1>
-  <p class="lead">Концепт → 3D-модель → риг → анимации → эффекты → пакет для Godot или спрайты. Всё локально, без облака. Бесплатно, исходники открыты (MIT).</p>
+  <div class="brand" style="display:flex;justify-content:space-between;align-items:center">AstraForge <span>· local studio</span><span style="margin-left:auto"><a href="#" data-setlang="ru" style="color:inherit">RU</a> · <a href="#" data-setlang="en" style="color:inherit">EN</a></span></div>
+  <h1 data-i18n="h1">3D-студия для игр<br><em>у тебя на компьютере.</em></h1>
+  <p class="lead" data-i18n="lead">Концепт → 3D-модель → риг → анимации → эффекты → пакет для Godot или спрайты. Всё локально, без облака. Бесплатно, исходники открыты (MIT).</p>
 
   <div class="shot"><img src="img/studio.jpg" alt="Интерфейс AstraForge: рыцарь с эффектом огня в сцене" width="960" height="590"></div>
 
   <div class="grid">
     <section class="card" id="download">
-      <span class="tag lime">Бесплатно · MIT</span>
-      <h2>Скачать установщик</h2>
-      <p>Один файл для Windows. Сам ставит Blender, 3D-движки, модели и анимации: «Быстрая» установка ≈ 30 ГБ, «Полная» ≈ 95 ГБ.</p>
-      <ul><li>Видеокарта NVIDIA, проверено на RTX 4070 12 ГБ</li><li>Windows 10/11</li></ul>
-      <a class="btn" href="https://github.com/Snodrod/AstraForge/releases/latest">Скачать с GitHub</a>
+      <span class="tag lime" data-i18n="free">Бесплатно · MIT</span>
+      <h2 data-i18n="dl_h">Скачать установщик</h2>
+      <p data-i18n="dl_p">Один файл для Windows. Сам ставит Blender, 3D-движки, модели и анимации: «Быстрая» установка ≈ 30 ГБ, «Полная» ≈ 95 ГБ.</p>
+      <ul data-i18n="dl_ul"><li>Видеокарта NVIDIA, проверено на RTX 4070 12 ГБ</li><li>Windows 10/11</li></ul>
+      <a class="btn" href="https://github.com/Snodrod/AstraForge/releases/latest" data-i18n="dl_btn">Скачать с GitHub</a>
     </section>
 
     <section class="card" id="subscribe">
-      <span class="tag amber">5 $ в месяц</span>
-      <h2>Подписка на обновления</h2>
-      <p>Новые инструменты, движки и эффекты приходят первыми, студия обновляется сама. Ключ приходит на почту: вставь его в AstraForge → «О программе». Без подписки ничего не отключается.</p>
-      <ul><li>Автообновление из GitHub Releases</li><li>Плагин AstraForge для Claude Code</li><li>Отмена в любой момент</li></ul>
+      <span class="tag amber" data-i18n="price">5 $ в месяц</span>
+      <h2 data-i18n="sub_h">Подписка на обновления</h2>
+      <p data-i18n="sub_p">Новые инструменты, движки и эффекты приходят первыми, студия обновляется сама. Ключ приходит на почту: вставь его в AstraForge → «О программе». Без подписки ничего не отключается.</p>
+      <ul data-i18n="sub_ul"><li>Автообновление из GitHub Releases</li><li>Плагин AstraForge для Claude Code</li><li>Отмена в любой момент</li></ul>
       <a class="btn" id="sub-btn" href="#subscribe">Оформить подписку</a>
       <p class="note" id="sub-note"></p>
     </section>
 
     <section class="card" id="plugin">
-      <span class="tag">Входит в подписку</span>
-      <h2>Плагин для Claude Code</h2>
-      <p>Студия как часть рабочего окна: панель с очередью заданий и команды для ассистента — «собери пачку бойцов и выгрузи в Godot».</p>
-      <a class="btn ghost" href="#subscribe">Подробнее о подписке</a>
+      <span class="tag" data-i18n="incl">Входит в подписку</span>
+      <h2 data-i18n="pl_h">Плагин для Claude Code</h2>
+      <p data-i18n="pl_p">Студия как часть рабочего окна: панель с очередью заданий и команды для ассистента — «собери пачку бойцов и выгрузи в Godot».</p>
+      <a class="btn ghost" href="#subscribe" data-i18n="pl_btn">Подробнее о подписке</a>
     </section>
   </div>
 
   <div class="links">
-    <a href="https://www.youtube.com/@MywayDorn">▶ Видеоинструкции на канале MyWay</a>
-    <a href="https://github.com/Snodrod/AstraForge">Исходники на GitHub</a>
-    <a href="https://dalink.to/artemdorn">Поддержать донатом</a>
+    <a href="https://www.youtube.com/@MywayDorn" data-i18n="l_yt">▶ Видеоинструкции на канале MyWay</a>
+    <a href="https://github.com/Snodrod/AstraForge" data-i18n="l_gh">Исходники на GitHub</a>
+    <a href="https://dalink.to/artemdorn" data-i18n="l_don">Поддержать донатом</a>
   </div>
 
-  <footer>Артём Доронин · MyWay · Dops Media. AstraForge распространяется по лицензии MIT, лицензии компонентов — в окне «О программе».</footer>
+  <footer data-i18n="foot">Артём Доронин · MyWay · Dops Media. AstraForge распространяется по лицензии MIT, лицензии компонентов — в окне «О программе».</footer>
 </main>
 <script>
+  var EN = {
+    h1: '3D studio for games<br><em>on your own PC.</em>',
+    lead: 'Concept → 3D model → rig → animations → effects → Godot package or sprites. Fully local, no cloud. Free and open source (MIT).',
+    free: 'Free · MIT', dl_h: 'Download the installer',
+    dl_p: 'One file for Windows. It installs Blender, 3D engines, models and animations by itself: "Quick" ≈ 30 GB, "Full" ≈ 95 GB.',
+    dl_ul: '<li>NVIDIA GPU, tested on RTX 4070 12 GB</li><li>Windows 10/11</li>', dl_btn: 'Download from GitHub',
+    price: '$5 / month', sub_h: 'Updates subscription',
+    sub_p: 'New tools, engines and effects reach you first, and the studio updates itself. Your key arrives by email: paste it into AstraForge → About. Nothing is locked without a subscription.',
+    sub_ul: '<li>Auto-updates from GitHub Releases</li><li>AstraForge plugin for Claude Code</li><li>Cancel any time</li>',
+    incl: 'Included in the subscription', pl_h: 'Claude Code plugin',
+    pl_p: 'The studio as part of your workspace: a panel with the job queue and commands for the assistant — "build a batch of fighters and export to Godot".',
+    pl_btn: 'About the subscription', l_yt: '▶ Video tutorials on the MyWay channel', l_gh: 'Source code on GitHub', l_don: 'Support with a donation',
+    foot: 'Artem Doronin · MyWay · Dops Media. AstraForge is MIT-licensed; component licenses are listed in the About window.',
+    sub_wait: 'Opening in the next few days',
+    sub_note: 'The payment provider is reviewing the store. The studio is already free to download, and you can support the author with a <a href="https://dalink.to/artemdorn" style="color:#c8f169">donation</a>.'
+  };
+  var RU = {}; document.querySelectorAll('[data-i18n]').forEach(function (e) { RU[e.dataset.i18n] = e.innerHTML; });
+  RU.sub_wait = 'Открывается в ближайшие дни';
+  RU.sub_note = 'Платёжная система проверяет магазин. Студия уже бесплатно доступна для скачивания, а поддержать автора можно <a href="https://dalink.to/artemdorn" style="color:#c8f169">донатом</a>.';
   // Ссылка на оплату подписки. Пока магазин Lemon Squeezy на проверке, оплата не открыта.
   // Когда магазин переведут в боевой режим, вставить сюда боевую ссылку из Lemon Squeezy (Share).
   var SUB_URL = null;
-  var btn = document.getElementById('sub-btn'), note = document.getElementById('sub-note');
-  if (SUB_URL) { btn.href = SUB_URL; }
-  else {
-    btn.setAttribute('aria-disabled', 'true');
-    btn.textContent = 'Открывается в ближайшие дни';
-    note.innerHTML = 'Платёжная система проверяет магазин. Студия уже бесплатно доступна для скачивания, а поддержать автора можно <a href="https://dalink.to/artemdorn" style="color:#c8f169">донатом</a>.';
+  function pick() {
+    try { var q = new URLSearchParams(location.search).get('lang'); if (q) return q; var s = localStorage.getItem('af_lang'); if (s) return s; } catch (e) {}
+    return /^ru|^uk|^be|^kk/i.test(navigator.language || '') ? 'ru' : 'en';
   }
+  function apply(lang) {
+    var T = lang === 'ru' ? RU : EN; document.documentElement.lang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(function (e) { if (T[e.dataset.i18n] != null) e.innerHTML = T[e.dataset.i18n]; });
+    document.title = lang === 'ru' ? 'AstraForge — локальная 3D-студия для игр' : 'AstraForge — local 3D studio for games';
+    var btn = document.getElementById('sub-btn'), note = document.getElementById('sub-note');
+    if (SUB_URL) { btn.href = SUB_URL; btn.textContent = lang === 'ru' ? 'Оформить подписку' : 'Subscribe'; note.innerHTML = ''; }
+    else { btn.setAttribute('aria-disabled', 'true'); btn.textContent = T.sub_wait; note.innerHTML = T.sub_note; }
+  }
+  document.querySelectorAll('[data-setlang]').forEach(function (a) {
+    a.addEventListener('click', function (ev) { ev.preventDefault(); try { localStorage.setItem('af_lang', a.dataset.setlang); } catch (e) {} apply(a.dataset.setlang); });
+  });
+  apply(pick());
 </script>
 </body>
 </html>
