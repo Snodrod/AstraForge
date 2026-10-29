@@ -2,6 +2,11 @@
 
 [Русская версия: README.ru.md](README.ru.md)
 
+> **Download for free · Subscribe to updates** — https://snodrod.github.io/AstraForge/
+>
+> - **Free:** [AstraForge-Setup.exe](https://github.com/Snodrod/AstraForge/releases/latest) — pick *Quick* (≈ 30 GB) or *Full* (≈ 95 GB) install. The version you download is yours forever.
+> - **Updates subscription — $5/month or $49/year:** everything new and fixed reaches your studio automatically on every launch. [Subscribe](https://snodrod.github.io/AstraForge/#subscribe) (cards from any country); paste the AF-… key from the email into *About → Subscription*.
+
 AstraForge is a Windows app that turns a picture or a text prompt into a game-ready 3D asset on your own machine: concept → geometry → editor → rig and animation → effects → export (GLB, OBJ, WebM, PNG, isometric sprite sheets, Godot packages). The server listens on `127.0.0.1` only. The UI is available in English and Russian (English by default, switch in the app).
 
 ## Requirements
@@ -65,7 +70,7 @@ API keys for OpenAI, Anthropic and Tripo are optional. Enter them in the app's *
 2. Double-click **Install AstraForge.cmd** and answer the wizard's questions. It scans your PC, shows what is missing with sizes and licences, and downloads everything into this same folder (`runtime\`, `data\models\`). An interrupted download continues on the next run. A desktop shortcut **AstraForge** is created at the end.
 3. Start the studio with **Start.cmd**.
 
-No git? Download **AstraForge-Setup-0.3.0.exe** from [Releases](https://github.com/Snodrod/AstraForge/releases/latest), run it and choose a folder: it unpacks the app and starts the same wizard. The file is not code-signed, so Windows SmartScreen may warn you: click *More info → Run anyway*.
+No git? Download **AstraForge-Setup-&lt;version&gt;.exe** from [Releases](https://github.com/Snodrod/AstraForge/releases/latest), run it and choose a folder: it unpacks the app and starts the same wizard. The file is not code-signed, so Windows SmartScreen may warn you: click *More info → Run anyway*.
 
 The installer writes the paths it finds to `config\paths.json`, and `Start.cmd` reads them from there. Command-line options of `installer\Install.ps1`:
 
