@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AstraForge — локальная 3D-студия для игр</title>
-<meta name="description" content="AstraForge — бесплатная локальная 3D-студия: концепт → 3D-модель → риг → анимации → эффекты → Godot и спрайты. Скачать установщик и подписка на обновления.">
+<meta name="description" content="AstraForge — бесплатная локальная 3D-студия: концепт → 3D-модель → риг → анимации → эффекты → Godot и спрайты. Скачать бесплатно или подписаться на обновления: 5 $ в месяц или 49 $ в год.">
 <meta property="og:title" content="AstraForge — локальная 3D-студия для игр">
-<meta property="og:description" content="Бесплатно, MIT. Концепт → 3D → риг → анимации → эффекты → Godot.">
+<meta property="og:description" content="Скачать бесплатно (MIT) или подписаться на обновления. Концепт → 3D → риг → анимации → эффекты → Godot.">
 <meta property="og:image" content="https://snodrod.github.io/AstraForge/img/studio.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -21,7 +21,8 @@
   .brand span { color:var(--dim); font-weight:600; }
   h1 { font-size:clamp(38px,7vw,72px); line-height:1.02; letter-spacing:-.035em; font-weight:800; margin:40px 0 18px; }
   h1 em { font-style:normal; color:var(--lime); }
-  .lead { font-size:clamp(17px,2.2vw,21px); color:var(--dim); max-width:680px; }
+  .lead { font-size:clamp(17px,2.2vw,21px); color:var(--dim); max-width:700px; }
+  .cta { display:flex; flex-wrap:wrap; gap:12px; margin-top:26px; }
   .shot { margin:40px 0 8px; border-radius:18px; border:1px solid var(--line); overflow:hidden; box-shadow:0 30px 80px rgba(0,0,0,.6); }
   .shot img { display:block; width:100%; height:auto; }
   .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; margin-top:44px; }
@@ -31,11 +32,15 @@
   .tag.lime { color:var(--lime); border-color:rgba(200,241,105,.5); }
   .tag.amber { color:var(--amber); border-color:rgba(255,189,104,.5); }
   .card p, .card li { color:var(--dim); font-size:16px; }
-  .card ul { padding-left:18px; }
-  .btn { margin-top:auto; display:inline-block; text-align:center; text-decoration:none; font-weight:800; font-size:17px;
+  .card ul { padding-left:18px; display:flex; flex-direction:column; gap:6px; }
+  .btn { display:inline-block; text-align:center; text-decoration:none; font-weight:800; font-size:17px;
     padding:15px 22px; border-radius:99px; background:var(--lime); color:#0b0f0c; }
+  .card .btn { margin-top:auto; }
   .btn.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
-  .btn[aria-disabled="true"] { background:rgba(255,255,255,.08); color:var(--dim); pointer-events:none; }
+  .plans { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .plan { border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+  .plan b { display:block; font-size:22px; color:var(--ink); }
+  .plan small { color:var(--dim); font-size:13px; }
   .note { font-size:14px; color:var(--dim); }
   .links { margin-top:48px; display:flex; flex-wrap:wrap; gap:12px; }
   .links a { color:var(--ink); text-decoration:none; border:1px solid var(--line); border-radius:99px; padding:10px 18px; font-size:15px; }
@@ -47,33 +52,38 @@
 <main>
   <div class="brand" style="display:flex;justify-content:space-between;align-items:center">AstraForge <span>· local studio</span><span style="margin-left:auto"><a href="#" data-setlang="ru" style="color:inherit">RU</a> · <a href="#" data-setlang="en" style="color:inherit">EN</a></span></div>
   <h1 data-i18n="h1">3D-студия для игр<br><em>у тебя на компьютере.</em></h1>
-  <p class="lead" data-i18n="lead">Концепт → 3D-модель → риг → анимации → эффекты → пакет для Godot или спрайты. Всё локально, без облака. Бесплатно, исходники открыты (MIT).</p>
+  <p class="lead" data-i18n="lead">Концепт → 3D-модель → риг → анимации → эффекты → пакет для Godot или спрайты. Всё локально, без облака. Скачать — бесплатно, исходники открыты (MIT). Подписка — чтобы каждое обновление приходило к вам само.</p>
+  <div class="cta"><a class="btn" href="#download" data-i18n="cta_dl">Скачать бесплатно</a><a class="btn ghost" href="#subscribe" data-i18n="cta_sub">Подписка на обновления</a></div>
 
   <div class="shot"><img src="img/studio.jpg" alt="Интерфейс AstraForge: рыцарь с эффектом огня в сцене" width="960" height="590"></div>
 
   <div class="grid">
     <section class="card" id="download">
       <span class="tag lime" data-i18n="free">Бесплатно · MIT</span>
-      <h2 data-i18n="dl_h">Скачать установщик</h2>
-      <p data-i18n="dl_p">Один файл для Windows. Сам ставит Blender, 3D-движки, модели и анимации: «Быстрая» установка ≈ 30 ГБ, «Полная» ≈ 95 ГБ.</p>
-      <ul data-i18n="dl_ul"><li>Видеокарта NVIDIA, проверено на RTX 4070 12 ГБ</li><li>Windows 10/11</li></ul>
-      <a class="btn" href="https://github.com/Snodrod/AstraForge/releases/latest" data-i18n="dl_btn">Скачать с GitHub</a>
+      <h2 data-i18n="dl_h">Скачать бесплатно</h2>
+      <p data-i18n="dl_p">Один установщик для Windows. При запуске выберите «Быструю» установку (≈ 30 ГБ, основные движки) или «Полную» (≈ 95 ГБ, всё сразу) — дальше он сам поставит Blender, 3D-движки, модели и анимации.</p>
+      <ul data-i18n="dl_ul"><li>Скачанная версия ваша навсегда — без ограничений и рекламы</li><li>Видеокарта NVIDIA (проверено на RTX 4070 12 ГБ), Windows 10/11</li><li>Без подписки студия не обновляется: новые версии — вручную, новым установщиком</li></ul>
+      <a class="btn" href="https://github.com/Snodrod/AstraForge/releases/latest" data-i18n="dl_btn">Скачать установщик</a>
     </section>
 
     <section class="card" id="subscribe">
-      <span class="tag amber" data-i18n="price">5 $ в месяц</span>
-      <h2 data-i18n="sub_h">Подписка на обновления</h2>
-      <p data-i18n="sub_p">Новые инструменты, движки и эффекты приходят первыми, студия обновляется сама. Ключ приходит на почту: вставь его в AstraForge → «О программе». Без подписки ничего не отключается.</p>
-      <ul data-i18n="sub_ul"><li>Автообновление из GitHub Releases</li><li>Плагин AstraForge для Claude Code</li><li>Отмена в любой момент</li></ul>
-      <a class="btn" id="sub-btn" href="#subscribe">Оформить подписку</a>
-      <p class="note" id="sub-note"></p>
+      <span class="tag amber" data-i18n="price">Подписка</span>
+      <h2 data-i18n="sub_h">Обновления сразу у вас</h2>
+      <p data-i18n="sub_p">Всё, что я добавляю и исправляю в AstraForge, сразу приходит к вам: студия при каждом запуске сама проверяет, скачивает и ставит свежую версию.</p>
+      <div class="plans">
+        <div class="plan"><small data-i18n="m_t">Месяц</small><b data-i18n="m_p">5 $</b><small data-i18n="m_r">490 ₽</small></div>
+        <div class="plan"><small data-i18n="y_t">Год · экономия 18 %</small><b data-i18n="y_p">49 $</b><small data-i18n="y_r">4800 ₽</small></div>
+      </div>
+      <ul data-i18n="sub_ul"><li>Новые инструменты, 3D-движки, эффекты и исправления — в день выпуска</li><li>Ключ приходит на почту и работает на всех ваших компьютерах</li><li>Отмена в любой момент: ключ действует до конца оплаченного срока</li><li>Оплата картой любой страны, российской картой или по СБП</li></ul>
+      <a class="btn" id="sub-btn" href="https://app.lava.top/products/7ac9f1e7-9b59-4135-aea6-0883b8078809/f3de1497-63f4-435e-b9ae-a5bf86e28ce5" data-i18n="sub_btn">Оформить подписку</a>
+      <p class="note" data-i18n="sub_note">Месяц или год выбираются на странице оплаты.</p>
     </section>
 
-    <section class="card" id="plugin">
-      <span class="tag" data-i18n="incl">Входит в подписку</span>
-      <h2 data-i18n="pl_h">Плагин для Claude Code</h2>
-      <p data-i18n="pl_p">Студия как часть рабочего окна: панель с очередью заданий и команды для ассистента — «собери пачку бойцов и выгрузи в Godot».</p>
-      <a class="btn ghost" href="#subscribe" data-i18n="pl_btn">Подробнее о подписке</a>
+    <section class="card" id="activate">
+      <span class="tag" data-i18n="act_tag">После оплаты</span>
+      <h2 data-i18n="act_h">Как включить обновления</h2>
+      <ul data-i18n="act_ul"><li>Придёт письмо с ключом вида AF-XXXXXX-XXXXXX-XXXXXX-XXXXXX</li><li>В студии откройте «О программе» → «Подписка», вставьте ключ и нажмите «Ввести ключ»</li><li>Готово: при каждом запуске студия сама ставит свежую версию</li></ul>
+      <p class="note" data-i18n="act_note">Нужна версия 0.4.1 или новее. Ключ не дошёл или потерялся — напишите в комментариях на канале, вышлем заново.</p>
     </section>
   </div>
 
@@ -86,28 +96,29 @@
   <footer data-i18n="foot">Артём Доронин · MyWay · Dops Media. AstraForge распространяется по лицензии MIT, лицензии компонентов — в окне «О программе».</footer>
 </main>
 <script>
+  // Оплата подписки — lava.top (решение владельца 29.10.2026): на одной странице месяц/год и валюта.
+  // Ключ AF-… выдаёт сервер ключей https://keys.dops.media по уведомлению lava.top.
+  var SUB_URL = 'https://app.lava.top/products/7ac9f1e7-9b59-4135-aea6-0883b8078809/f3de1497-63f4-435e-b9ae-a5bf86e28ce5';
   var EN = {
     h1: '3D studio for games<br><em>on your own PC.</em>',
-    lead: 'Concept → 3D model → rig → animations → effects → Godot package or sprites. Fully local, no cloud. Free and open source (MIT).',
-    free: 'Free · MIT', dl_h: 'Download the installer',
-    dl_p: 'One file for Windows. It installs Blender, 3D engines, models and animations by itself: "Quick" ≈ 30 GB, "Full" ≈ 95 GB.',
-    dl_ul: '<li>NVIDIA GPU, tested on RTX 4070 12 GB</li><li>Windows 10/11</li>', dl_btn: 'Download from GitHub',
-    price: '$5 / month', sub_h: 'Updates subscription',
-    sub_p: 'New tools, engines and effects reach you first, and the studio updates itself. Your key arrives by email: paste it into AstraForge → About. Nothing is locked without a subscription.',
-    sub_ul: '<li>Auto-updates from GitHub Releases</li><li>AstraForge plugin for Claude Code</li><li>Cancel any time</li>',
-    incl: 'Included in the subscription', pl_h: 'Claude Code plugin',
-    pl_p: 'The studio as part of your workspace: a panel with the job queue and commands for the assistant — "build a batch of fighters and export to Godot".',
-    pl_btn: 'About the subscription', l_yt: '▶ Video tutorials on the MyWay channel', l_gh: 'Source code on GitHub', l_don: 'Support with a donation',
-    foot: 'Artem Doronin · MyWay · Dops Media. AstraForge is MIT-licensed; component licenses are listed in the About window.',
-    sub_wait: 'Opening in the next few days',
-    sub_note: 'The payment provider is reviewing the store. The studio is already free to download, and you can support the author with a <a href="https://dalink.to/artemdorn" style="color:#c8f169">donation</a>.'
+    lead: 'Concept → 3D model → rig → animations → effects → Godot package or sprites. Fully local, no cloud. Free to download and open source (MIT). Subscribe to get every update automatically.',
+    cta_dl: 'Download free', cta_sub: 'Updates subscription',
+    free: 'Free · MIT', dl_h: 'Download for free',
+    dl_p: 'One installer for Windows. Pick "Quick" (≈ 30 GB, core engines) or "Full" (≈ 95 GB, everything) when it starts — it then installs Blender, 3D engines, models and animations by itself.',
+    dl_ul: '<li>The version you download is yours forever — no limits, no ads</li><li>NVIDIA GPU (tested on RTX 4070 12 GB), Windows 10/11</li><li>Without a subscription the studio does not update itself: new versions are installed manually</li>',
+    dl_btn: 'Download the installer',
+    price: 'Subscription', sub_h: 'Every update, right away',
+    sub_p: 'Everything I add to and fix in AstraForge reaches you right away: on every launch the studio checks, downloads and installs the latest version by itself.',
+    m_t: 'Monthly', m_p: '$5', m_r: '€5 · 490 ₽', y_t: 'Yearly · save 18%', y_p: '$49', y_r: '€49 · 4800 ₽',
+    sub_ul: '<li>New tools, 3D engines, effects and fixes — on release day</li><li>Your key arrives by email and works on all your computers</li><li>Cancel any time: the key stays valid until the end of the paid period</li><li>Pay with a card from any country</li>',
+    sub_btn: 'Subscribe', sub_note: 'Choose monthly or yearly on the payment page.',
+    act_tag: 'After payment', act_h: 'How to turn on updates',
+    act_ul: '<li>You get an email with a key like AF-XXXXXX-XXXXXX-XXXXXX-XXXXXX</li><li>In the studio open About → Subscription, paste the key and press "Enter key"</li><li>Done: the studio installs the latest version on every launch</li>',
+    act_note: 'Requires version 0.4.1 or newer. Key did not arrive or got lost? Write in the YouTube comments and we will resend it.',
+    l_yt: '▶ Video tutorials on the MyWay channel', l_gh: 'Source code on GitHub', l_don: 'Support with a donation',
+    foot: 'Artem Doronin · MyWay · Dops Media. AstraForge is MIT-licensed; component licenses are listed in the About window.'
   };
   var RU = {}; document.querySelectorAll('[data-i18n]').forEach(function (e) { RU[e.dataset.i18n] = e.innerHTML; });
-  RU.sub_wait = 'Открывается в ближайшие дни';
-  RU.sub_note = 'Платёжная система проверяет магазин. Студия уже бесплатно доступна для скачивания, а поддержать автора можно <a href="https://dalink.to/artemdorn" style="color:#c8f169">донатом</a>.';
-  // Ссылка на оплату подписки. Пока магазин Lemon Squeezy на проверке, оплата не открыта.
-  // Когда магазин переведут в боевой режим, вставить сюда боевую ссылку из Lemon Squeezy (Share).
-  var SUB_URL = null;
   function pick() {
     try { var q = new URLSearchParams(location.search).get('lang'); if (q) return q; var s = localStorage.getItem('af_lang'); if (s) return s; } catch (e) {}
     return /^ru|^uk|^be|^kk/i.test(navigator.language || '') ? 'ru' : 'en';
@@ -116,9 +127,7 @@
     var T = lang === 'ru' ? RU : EN; document.documentElement.lang = lang;
     document.querySelectorAll('[data-i18n]').forEach(function (e) { if (T[e.dataset.i18n] != null) e.innerHTML = T[e.dataset.i18n]; });
     document.title = lang === 'ru' ? 'AstraForge — локальная 3D-студия для игр' : 'AstraForge — local 3D studio for games';
-    var btn = document.getElementById('sub-btn'), note = document.getElementById('sub-note');
-    if (SUB_URL) { btn.href = SUB_URL; btn.textContent = lang === 'ru' ? 'Оформить подписку' : 'Subscribe'; note.innerHTML = ''; }
-    else { btn.setAttribute('aria-disabled', 'true'); btn.textContent = T.sub_wait; note.innerHTML = T.sub_note; }
+    document.getElementById('sub-btn').href = SUB_URL + '?currency=' + (lang === 'ru' ? 'RUB' : 'USD');
   }
   document.querySelectorAll('[data-setlang]').forEach(function (a) {
     a.addEventListener('click', function (ev) { ev.preventDefault(); try { localStorage.setItem('af_lang', a.dataset.setlang); } catch (e) {} apply(a.dataset.setlang); });
