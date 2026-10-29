@@ -15,11 +15,13 @@ under the PolyForm Noncommercial License 1.0.0 (see LICENSE).
 3. **What you made stays yours.** Assets you created with AstraForge while your subscription was active may be used
    commercially forever, also after the subscription ends. After it ends, new commercial use of AstraForge requires a
    renewed subscription; noncommercial use continues under the PolyForm Noncommercial License.
-4. **Who is covered.** One subscription covers one person, on any number of that person's own computers. A company
-   needs one subscription for each person who uses AstraForge. The subscription key is personal: do not share,
-   publish or resell it.
+4. **One key — one copy — one computer.** One subscription covers one person and one installed copy of AstraForge on
+   one computer. The key is bound to that computer when you enter it and does not work on any other. You may move your
+   license to another computer: release it on the old one (About → Subscription → "Unbind from this computer") or
+   transfer it from the new one (once per 30 days by yourself, more often through support@dops.media). A company needs
+   one subscription for each computer AstraForge runs on. Do not share, publish or resell your key.
 5. **Not allowed.** Reselling, sublicensing or redistributing AstraForge or its updates (paid or free), sharing your
-   key, or removing license and copyright notices.
+   key, working around the computer binding, or removing license and copyright notices.
 6. **Third-party components.** AstraForge installs third-party programs and models (Blender, ComfyUI, Hunyuan3D,
    SDXL, DINOv3, Qwen and others) that are governed by their own licenses (THIRD_PARTY_NOTICES.md; About → Licenses).
    This license does not grant rights beyond those licenses. In particular: the Tencent Hunyuan 3D license does not
@@ -58,11 +60,13 @@ English version — above; при расхождении действует ан
    коммерческих целях навсегда, в том числе после окончания подписки. После её окончания новое коммерческое
    использование AstraForge требует продления; некоммерческое использование продолжается по лицензии PolyForm
    Noncommercial.
-4. **На кого распространяется.** Одна подписка — на одного человека, на любом числе его собственных компьютеров.
-   Компании нужна отдельная подписка на каждого, кто работает в AstraForge. Ключ подписки личный: не передавайте, не
-   публикуйте и не перепродавайте его.
+4. **Один ключ — одна копия — один компьютер.** Одна подписка — на одного человека и одну установленную копию AstraForge
+   на одном компьютере. При вводе ключ закрепляется за этим компьютером и на других не работает. Лицензию можно перенести
+   на другой компьютер: отвязать на старом («О программе» → «Подписка» → «Отвязать от этого компьютера») или перенести с
+   нового (самостоятельно — раз в 30 дней, чаще — через support@dops.media). Компании нужна отдельная подписка на каждый
+   компьютер, где работает AstraForge. Не передавайте, не публикуйте и не перепродавайте ключ.
 5. **Что запрещено.** Перепродавать, сублицензировать или распространять AstraForge и его обновления (платно или
-   бесплатно), передавать свой ключ, удалять уведомления о лицензии и авторских правах.
+   бесплатно), передавать свой ключ, обходить привязку к компьютеру, удалять уведомления о лицензии и авторских правах.
 6. **Сторонние компоненты.** AstraForge ставит сторонние программы и модели (Blender, ComfyUI, Hunyuan3D, SDXL, DINOv3,
    Qwen и другие), которые работают по своим лицензиям (THIRD_PARTY_NOTICES.md; «О программе» → «Лицензии»). Эта
    лицензия не даёт прав сверх них. В частности: лицензия Tencent Hunyuan 3D не распространяется на Европейский союз,

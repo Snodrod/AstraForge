@@ -4,7 +4,7 @@
 
 > **Бесплатная базовая версия · Коммерческая лицензия по подписке** — https://snodrod.github.io/AstraForge/
 >
-> - **Бесплатно:** [AstraForge-Setup.exe](https://github.com/Snodrod/AstraForge/releases/latest) (0.4.2, «Быстрая» ≈ 30 ГБ или «Полная» ≈ 95 ГБ). Только личное, учебное и другое **некоммерческое** использование, без обновлений — [PolyForm Noncommercial 1.0.0](LICENSE-0.4.2.ru.md).
+> - **Бесплатно:** [AstraForge-Setup.exe](https://github.com/Snodrod/AstraForge/releases/latest) (0.4.3, «Быстрая» ≈ 30 ГБ или «Полная» ≈ 95 ГБ). Только личное, учебное и другое **некоммерческое** использование, без обновлений — [PolyForm Noncommercial 1.0.0](LICENSE-0.4.2.ru.md).
 > - **Подписка — 5 $/мес или 49 $/год (490 ₽ / 4800 ₽):** право использовать AstraForge и всё, что в нём сделано, **в коммерческих целях**, и каждое обновление в день выхода — [лицензия подписки](COMMERCIAL-LICENSE.md). [Оформить](https://snodrod.github.io/AstraForge/#subscribe).
 > - Исходный код в этом репозитории — старая версия 0.3.0 под лицензией MIT ([LICENSE](LICENSE)). Версии 0.4.2 и новее распространяются по лицензиям выше.
 
