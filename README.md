@@ -2,10 +2,11 @@
 
 [Русская версия: README.ru.md](README.ru.md)
 
-> **Download for free · Subscribe to updates** — https://snodrod.github.io/AstraForge/
+> **Free base version · Commercial license by subscription** — https://snodrod.github.io/AstraForge/
 >
-> - **Free:** [AstraForge-Setup.exe](https://github.com/Snodrod/AstraForge/releases/latest) — pick *Quick* (≈ 30 GB) or *Full* (≈ 95 GB) install. The version you download is yours forever.
-> - **Updates subscription — $5/month or $49/year:** everything new and fixed reaches your studio automatically on every launch. [Subscribe](https://snodrod.github.io/AstraForge/#subscribe) (cards from any country); paste the AF-… key from the email into *About → Subscription*.
+> - **Free:** [AstraForge-Setup.exe](https://github.com/Snodrod/AstraForge/releases/latest) (0.4.2, *Quick* ≈ 30 GB or *Full* ≈ 95 GB). Personal, educational and other **noncommercial** use only, no updates — [PolyForm Noncommercial 1.0.0](LICENSE-0.4.2.md).
+> - **Subscription — $5/month or $49/year:** use AstraForge and everything you make with it **commercially**, and get every update on release day — [subscription license](COMMERCIAL-LICENSE.md). [Subscribe](https://snodrod.github.io/AstraForge/#subscribe).
+> - The source code in this repository is the older version 0.3.0 under the MIT License ([LICENSE](LICENSE)). Versions 0.4.2+ are distributed under the licenses above.
 
 AstraForge is a Windows app that turns a picture or a text prompt into a game-ready 3D asset on your own machine: concept → geometry → editor → rig and animation → effects → export (GLB, OBJ, WebM, PNG, isometric sprite sheets, Godot packages). The server listens on `127.0.0.1` only. The UI is available in English and Russian (English by default, switch in the app).
 
