@@ -10,5 +10,9 @@ export ASTRA_AMD_ROCM=1
 export ATTN_BACKEND=sdpa
 export SPARSE_ATTN_BACKEND=sdpa
 export FLEX_GEMM_ALGO=explicit_gemm
+export HF_HOME="$ENGINE/cache/huggingface"
+export TORCH_HOME="$ENGINE/cache/torch"
+export HF_HUB_DISABLE_TELEMETRY=1
+export PYTHONUTF8=1
 exec "$ENGINE/.venv/bin/python" "$ENGINE/ComfyUI/main.py" \
   --listen 127.0.0.1 --disable-auto-launch "$@"

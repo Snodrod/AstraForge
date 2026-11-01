@@ -2,6 +2,7 @@ param([switch]$ScanOnly, [switch]$Yes, [switch]$DryRun, [string[]]$Only)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Install.ps1') -ScanOnly:$ScanOnly -Yes:$Yes -DryRun:$DryRun -Only:$Only
 . (Join-Path $PSScriptRoot 'amd\AmdCore.ps1')
+. (Join-Path $PSScriptRoot 'amd\Pixal3DAmd.ps1')
 
 function InstallAmdComfyDeps($dir) {
   $uv = Uv
@@ -59,7 +60,10 @@ $items = @(
   @{ id='comfydeps'; missing=($s.comfy -and (!$s.comfyDeps -or !$amdTorchReady)); run={ InstallAmdComfyDeps $s.comfy } },
   @{ id='hy2'; missing=!$s.hy2; run={ Model 'https://huggingface.co/tencent/Hunyuan3D-2/resolve/main/hunyuan3d-dit-v2-0/model.fp16.safetensors' 'hunyuan3d-dit-v2.safetensors' } },
   @{ id='sdxl'; missing=!$s.sdxl; run={ Model 'https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors' 'sd_xl_base_1.0.safetensors' } },
-  @{ id='u2net'; missing=!$s.u2net; run={ Download 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx' (Join-Path $Root 'data\models\background\models\u2net\u2net.onnx') } }
+  @{ id='u2net'; missing=!$s.u2net; run={ Download 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx' (Join-Path $Root 'data\models\background\models\u2net\u2net.onnx') } },
+  @{ id='pixal3d'; missing=(!(Test-Path -LiteralPath (Join-Path $AmdPixalDir 'wsl-ready.json'))); run={ InstallAmdPixal3d } },
+  @{ id='pixal3dw'; missing=(!(P3Probe $AmdPixalDir).weights); run={ InstallAmdPixal3dWeights } },
+  @{ id='pixal3dtest'; missing=$false; run={ TestAmdPixal3d } }
 )
 $ids = if ($Only) { @($Only | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() }) } else { @() }
 $plan = @($items | Where-Object { ($Only -and $ids -contains $_.id) -or (!$Only -and $_.missing) })

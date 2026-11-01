@@ -62,7 +62,7 @@ git -C "$SRC/TRELLIS.2" submodule update --init o-voxel/third_party/eigen
 
 "$VENV/bin/python" -m pip install -r "$ENGINE/ComfyUI/requirements.txt"
 "$VENV/bin/python" -m pip install ninja requests pymeshlab plyfile easydict zstandard opencv-python scipy open3d plotly rembg trimesh \
-  timm transformers accelerate safetensors huggingface_hub einops utils3d@https://github.com/EasternJournalist/utils3d/archive/83bfa5bda008803f6521ce9547f94023b8afeddd.zip
+  timm==1.0.30 transformers==4.57.6 accelerate safetensors huggingface_hub einops utils3d@https://github.com/EasternJournalist/utils3d/archive/83bfa5bda008803f6521ce9547f94023b8afeddd.zip
 mkdir -p "$ENGINE/ComfyUI/models/microsoft/TRELLIS.2-4B"
 cp -f "$APP_ROOT/installer/pixal3d/af_vram_probe.py" "$ENGINE/ComfyUI/custom_nodes/af_vram_probe.py"
 "$VENV/bin/python" "$APP_ROOT/installer/pixal3d/patch_trellis2.py" "$ENGINE/ComfyUI/custom_nodes/ComfyUI-Trellis2"

@@ -42,6 +42,13 @@ test('backend config keeps NVIDIA Windows defaults and accepts explicit WSL over
   assert.throws(() => pixal3dConfig({ env: { ASTRA_PIXAL3D_BACKEND: 'cuda' }, appRoot }), /backend/i);
 });
 
+test('backend config reads the UTF-8 BOM written by Windows PowerShell', () => {
+  const appRoot = path.join(tmp, 'app-bom');
+  mkdirSync(path.join(appRoot, 'config'), { recursive: true });
+  writeFileSync(path.join(appRoot, 'config', 'paths.json'), '\uFEFF' + JSON.stringify({ pixal3dBackend: 'wsl' }));
+  assert.equal(pixal3dConfig({ env: {}, appRoot }).backend, 'wsl');
+});
+
 function fakeWslInstall(name) {
   const dir = path.join(tmp, name);
   for (const [rel] of PIXAL3D_REQUIREMENTS) {

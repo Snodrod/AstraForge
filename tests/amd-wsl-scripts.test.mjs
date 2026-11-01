@@ -11,6 +11,7 @@ test('AMD WSL scripts exclude CUDA wheels and verify the GPU', () => {
   assert.match(install, /9070 XT/);
   assert.match(install, /PYTORCH_ROCM_ARCH=gfx1201/);
   assert.match(install, /--no-build-isolation/);
+  assert.match(install, /transformers==4\.57\.6/);
   const verify = read('scripts/wsl/verify_pixal3d_amd.py');
   for (const name of ['cumesh', 'flex_gemm', 'o_voxel']) assert.match(verify, new RegExp(name));
 });
@@ -21,6 +22,8 @@ test('AMD WSL launcher forwards ComfyUI runtime arguments', () => {
   assert.match(start, /--listen 127\.0\.0\.1/);
   assert.match(start, /--disable-auto-launch/);
   assert.match(start, /"\$@"/);
+  assert.match(start, /HF_HOME="\$ENGINE\/cache\/huggingface"/);
+  assert.match(start, /TORCH_HOME="\$ENGINE\/cache\/torch"/);
 });
 
 test('AMD node patch disables unused NVIDIA-only imports', () => {
