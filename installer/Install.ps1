@@ -138,13 +138,22 @@ $VlmName = 'qwen3-vl:8b'
 $VlmBytes = [long]6.1e9
 
 # ---------------------------------------------------------------- computer scan
+function ConvertFrom-NvidiaSmiCsv($line) {
+  if ([string]::IsNullOrWhiteSpace($line)) { return $null }
+  $p = ([string]$line).Split(',')
+  if ($p.Count -lt 2) { return $null }
+  $vram = 0
+  if (![int]::TryParse($p[1].Trim(), [ref]$vram)) { return $null }
+  return @{ gpu = $p[0].Trim(); vram = $vram }
+}
 function Scan() {
   $s = @{}
   $s.gpu = $null; $s.vram = 0; $s.cc = $null
   $smi = Get-Command nvidia-smi.exe -ErrorAction SilentlyContinue
   if ($smi) {
     $line = Native { & $smi.Source --query-gpu=name,memory.total --format=csv,noheader,nounits 2>$null | Select-Object -First 1 }
-    if ($line) { $p = $line.Split(','); $s.gpu = $p[0].Trim(); $s.vram = [int]$p[1].Trim() }
+    $nv = ConvertFrom-NvidiaSmiCsv $line
+    if ($nv) { $s.gpu = $nv.gpu; $s.vram = $nv.vram }
     # compute capability (8.9 on an RTX 4070): needed by Pixal3D; old drivers do not know this field - then it stays $null
     if ($s.gpu) {
       $cc = Native { & $smi.Source --query-gpu=compute_cap --format=csv,noheader 2>$null | Select-Object -First 1 }
@@ -173,7 +182,7 @@ function Scan() {
   # ComfyUI (the application's own copy: .venv + main.py + Hunyuan3D nodes)
   $s.comfy = $null
   foreach ($c in @($Cfg.comfyDir, $env:ASTRA_COMFY_DIR, (Join-Path $Rt 'ComfyUI'), 'D:\ComfyUI', 'C:\ComfyUI', (Join-Path $HOME 'ComfyUI'))) {
-    if ($c -and (Test-Path -LiteralPath (Join-Path $c '.venv\Scripts\python.exe')) -and (Test-Path -LiteralPath (Join-Path $c 'main.py')) -and (Test-Path -LiteralPath (Join-Path $c 'comfy_extras\nodes_hunyuan3d.py'))) { $s.comfy = (Resolve-Path -LiteralPath $c).Path; break }
+    if ($c -and (Test-Path -LiteralPath $c) -and (Test-Path -LiteralPath (Join-Path $c '.venv\Scripts\python.exe')) -and (Test-Path -LiteralPath (Join-Path $c 'main.py')) -and (Test-Path -LiteralPath (Join-Path $c 'comfy_extras\nodes_hunyuan3d.py'))) { $s.comfy = (Resolve-Path -LiteralPath $c).Path; break }
   }
   $s.comfyDeps = $false
   if ($s.comfy) {

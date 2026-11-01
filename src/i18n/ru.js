@@ -1946,7 +1946,7 @@ export default {
   "app.conn.startEngine": "Запустить 3D-движок",
   "app.conn.comfyNote": "Отдельный ComfyUI на порту 8190, режим экономии видеопамяти. Ваш основной ComfyUI на 8188 продолжает работать.",
   "app.conn.weightsDownloading": "Веса Hunyuan3D ещё скачиваются.",
-  "app.conn.hardware": "Работает локально на вашей видеокарте NVIDIA",
+  "app.conn.hardware": "Работает локально на вашей видеокарте",
   "app.engine.gpuUnknown": "Видеокарта ещё не определена",
   "app.quality.ref": "время для видеокарты 12 ГБ",
   "app.conn.save": "Сохранить подключения",

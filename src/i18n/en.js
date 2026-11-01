@@ -1948,7 +1948,7 @@ export default {
   "app.conn.startEngine": "Start 3D engine",
   "app.conn.comfyNote": "A separate ComfyUI on port 8190 in VRAM-saving mode. Your main ComfyUI on 8188 keeps running.",
   "app.conn.weightsDownloading": "Hunyuan3D weights are still downloading.",
-  "app.conn.hardware": "Runs locally on your NVIDIA GPU",
+  "app.conn.hardware": "Runs locally on your GPU",
   "app.engine.gpuUnknown": "GPU not detected yet",
   "app.quality.ref": "timings for a 12 GB GPU",
   "app.conn.save": "Save connections",
