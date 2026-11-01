@@ -52,11 +52,12 @@ export function hunyuanMultiViewWorkflow(images,checkpoint,quality,seed,prefix,m
 // With only the front view the single-view graph is built, otherwise the multi-view one (azimuths 0/90/180/270 = front/left/back/right).
 export const PIXAL3D_MODEL='TencentARC/Pixal3D';
 export const PIXAL3D_AZIMUTH={front:0,left:90,back:180,right:270};
-export function pixal3dWorkflow(images,{seed=1000,prefix='astra/pixal3d',targetFaces=700000,sampler='heun',fovRad=0.1,removeBackground=false}={}){
+export function pixal3dWorkflow(images,{seed=1000,prefix='astra/pixal3d',targetFaces=700000,sampler='heun',fovRad=0.1,removeBackground=false,runtimeBackend='windows'}={}){
  if(!images?.front)throw new Error('Pixal3D requires a front view.');
  const slots=MV_SLOTS.filter(slot=>images[slot]),multi=slots.length>1;
+ const attention=runtimeBackend==='wsl'?'sdpa':'flash_attn';
  const g={};
- g['1']={class_type:'Trellis2LoadModel',inputs:{modelname:PIXAL3D_MODEL,backend:'flash_attn',device:'cuda',low_vram:true,keep_models_loaded:false,conv_backend:'flex_gemm',sparse_backend:'flash_attn',use_reconviagen:false,pixal3d_multiview:multi}};
+ g['1']={class_type:'Trellis2LoadModel',inputs:{modelname:PIXAL3D_MODEL,backend:attention,device:'cuda',low_vram:true,keep_models_loaded:false,conv_backend:'flex_gemm',sparse_backend:attention,use_reconviagen:false,pixal3d_multiview:multi}};
  g['2']={class_type:'Trellis2LoadImageWithTransparency',inputs:{image:images.front}};
  g['3']={class_type:'Trellis2PreProcessImage',inputs:{image:['2',2],padding:5,remove_background:removeBackground,max_size:1024}};
  g['4']={class_type:'Trellis2ImageCondGenerator',inputs:{pipeline:['1',0],image:['3',0],max_views:1}};

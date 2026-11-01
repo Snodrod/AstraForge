@@ -149,7 +149,7 @@ export async function generatePixal3d(o) {
   await (deps.start || startPixal3dRuntime)({ cfg, signal, onProgress: (message) => onProgress?.({ percent: 0, message }) });
   signal?.throwIfAborted();
 
-  const workflowFor = (names) => pixal3dWorkflow(names, { seed, prefix: 'astra/px-' + tag, targetFaces, sampler: o.sampler || 'heun', removeBackground: !!o.removeBackground });
+  const workflowFor = (names) => pixal3dWorkflow(names, { seed, prefix: 'astra/px-' + tag, targetFaces, sampler: o.sampler || 'heun', removeBackground: !!o.removeBackground, runtimeBackend: cfg.backend });
   const wanted = [...new Set(Object.values(workflowFor(Object.fromEntries(slots.map((s) => [s, s])))).map((n) => n.class_type))];
   let info;
   try { info = await comfyJson(cfg.url + '/object_info', { signal: AbortSignal.timeout(30000) }); } catch { throw new Error('The Pixal3D engine is not responding. See data/runtime/pixal3d.log.'); }

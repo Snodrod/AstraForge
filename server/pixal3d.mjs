@@ -6,6 +6,7 @@ import { existsSync, readFileSync, openSync, closeSync, promises as fs } from 'n
 import path from 'node:path';
 import { root, data } from './storage.mjs';
 import { localUrl } from './schema.mjs';
+import { pixal3dWslArgs } from './pixal3d-wsl.mjs';
 
 export const DEFAULT_PIXAL3D_DIR = 'C:/AstraForge/ComfyUI-Pixal3D';
 export const DEFAULT_PIXAL3D_URL = 'http://127.0.0.1:8191';
@@ -50,7 +51,10 @@ export function pixal3dConfig({ env = process.env, appRoot = root } = {}) {
     url = parsed.data;
   }
   const port = Number(new URL(url).port) || 80;
-  return { dir: path.resolve(dir), url, port, source };
+  const backend = env.ASTRA_PIXAL3D_BACKEND || paths.pixal3dBackend || 'windows';
+  if (!['windows', 'wsl'].includes(backend)) throw new Error('Pixal3D backend must be windows or wsl.');
+  const wslDistro = String(env.ASTRA_PIXAL3D_WSL_DISTRO || paths.pixal3dWslDistro || 'AstraForge-AMD').trim() || 'AstraForge-AMD';
+  return { dir: path.resolve(dir), url, port, source, backend, wslDistro };
 }
 
 /** Disk check only (no network): which required files are missing. */
@@ -58,7 +62,10 @@ export function pixal3dInstallState(cfg = pixal3dConfig(), exists = existsSync) 
   if (!exists(cfg.dir)) {
     return { installed: false, missing: [], message: `Pixal3D is not installed: folder not found ${cfg.dir}. Set it in ASTRA_PIXAL3D_DIR or config\\paths.json (key pixal3dDir).` };
   }
-  const missing = PIXAL3D_REQUIREMENTS.filter(([rel]) => !exists(path.join(cfg.dir, rel))).map(([rel, label]) => ({ path: rel, label }));
+  const requirements = cfg.backend === 'wsl'
+    ? [...PIXAL3D_REQUIREMENTS.filter(([rel]) => rel !== 'python_embeded/python.exe'), ['wsl-ready.json', 'Verified ROCm WSL runtime']]
+    : PIXAL3D_REQUIREMENTS;
+  const missing = requirements.filter(([rel]) => !exists(path.join(cfg.dir, rel))).map(([rel, label]) => ({ path: rel, label }));
   if (missing.length) {
     const names = missing.slice(0, 3).map((m) => m.label).join('; ') + (missing.length > 3 ? ` and ${missing.length - 3} more` : '');
     return { installed: false, missing, message: `Pixal3D is not fully installed (${cfg.dir}): missing - ${names}. See ASTRAFORGE_README.md in that folder.` };
@@ -98,6 +105,7 @@ export async function pixal3dStatus({ cfg = pixal3dConfig(), fetchFn = fetch, ex
 }
 
 let child = null;
+let childCfg = null;
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Environment of "Start ComfyUI (Pixal3D, 8191).bat": caches inside the install, no system CUDA/Python variables. */
@@ -149,16 +157,21 @@ export async function startPixal3dRuntime(o = {}) {
     onProgress?.('Pixal3D is already starting');
   } else {
     onProgress?.('Starting the Pixal3D engine (the first start takes 1-2 minutes)');
-    const python = path.join(cfg.dir, 'python_embeded', 'python.exe'), tempDir = pixal3dTempDir(runtimeDir), logFile = pixal3dLogFile(runtimeDir);
+    const tempDir = pixal3dTempDir(runtimeDir), logFile = pixal3dLogFile(runtimeDir);
+    const executable = cfg.backend === 'wsl' ? 'wsl.exe' : path.join(cfg.dir, 'python_embeded', 'python.exe');
+    const args = cfg.backend === 'wsl'
+      ? pixal3dWslArgs(cfg, runtimeDir)
+      : pixal3dArgs(cfg, tempDir, path.join(runtimeDir, 'pixal3d.db'));
     await fs.mkdir(tempDir, { recursive: true });   // also creates runtimeDir
     const fd = openSync(logFile, 'a');
     try {
-      child = spawnFn(python, pixal3dArgs(cfg, tempDir, path.join(runtimeDir, 'pixal3d.db')), { cwd: cfg.dir, windowsHide: true, detached: true, stdio: ['ignore', fd, fd], env: pixal3dEnv(cfg) });
+      child = spawnFn(executable, args, { cwd: cfg.dir, windowsHide: true, detached: true, stdio: ['ignore', fd, fd], env: pixal3dEnv(cfg) });
+      childCfg = cfg;
       child.unref?.();
     } finally { closeSync(fd); }
     const mine = child;
-    mine.on?.('error', (e) => { void fs.appendFile(logFile, 'spawn error: ' + e.message + '\n').catch(() => {}); if (child === mine) child = null; });
-    mine.on?.('exit', () => { if (child === mine) child = null; });
+    mine.on?.('error', (e) => { void fs.appendFile(logFile, 'spawn error: ' + e.message + '\n').catch(() => {}); if (child === mine) { child = null; childCfg = null; } });
+    mine.on?.('exit', () => { if (child === mine) { child = null; childCfg = null; } });
     await fs.writeFile(path.join(runtimeDir, 'pixal3d.pid'), String(mine.pid || '')).catch(() => {});
   }
   const started = Date.now(), mine = child;
@@ -175,12 +188,17 @@ export async function startPixal3dRuntime(o = {}) {
 }
 
 /** Stop only the instance this studio process started (called from runtime.mjs on shutdown). */
-export function stopOwnedPixal3d() {
+export function stopOwnedPixal3d({ spawnFn = spawn } = {}) {
   if (!child) return;
-  if (process.platform === 'win32') spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }).on('error', () => {});
-  else child.kill();
+  const owned = child, cfg = childCfg;
+  if (cfg?.backend === 'wsl') {
+    spawnFn('wsl.exe', ['-d', cfg.wslDistro || 'AstraForge-AMD', '--terminate'], { windowsHide: true, stdio: 'ignore' }).on('error', () => {});
+  } else if (process.platform === 'win32') {
+    spawnFn('taskkill', ['/PID', String(owned.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }).on('error', () => {});
+  } else owned.kill();
   child = null;
+  childCfg = null;
 }
 
 /** Test hook: forget the child without killing it. */
-export function _resetPixal3dRuntime() { child = null; }
+export function _resetPixal3dRuntime() { child = null; childCfg = null; }
