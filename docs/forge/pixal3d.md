@@ -100,7 +100,7 @@ Checked on 2026-10-14 through the studio API (`POST /api/jobs` jobs, test charac
 
 ## AMD ROCm verification (RX 9070 XT, 16 GB)
 
-The project-owned WSL2 runtime uses ROCm PyTorch and the bounded PyTorch NAF fallback; no NVIDIA NATTEN, CUDA wheels or `nvdiffrast` are required for shape generation or the verified vertex-color path. `ASTRA_AMD_NAF_ROW_BLOCK` controls the fallback's row block and defaults to `2`; the patch also upgrades existing installations that still contain the former fixed `row_block = 1` without reinstalling dependencies. For single-view texturing, `ASTRA_AMD_NAF_TILE` defaults to `2` and enables the upstream tiled NAF path. Padding is bounded to each row block instead of allocating a full padded copy.
+The project-owned WSL2 runtime uses ROCm PyTorch and the bounded PyTorch NAF fallback; no NVIDIA NATTEN, CUDA wheels or `nvdiffrast` are required for shape generation, vertex colors or UV base color texturing. `ASTRA_AMD_NAF_ROW_BLOCK` controls the fallback's row block and defaults to `2`; the patch also upgrades existing installations that still contain the former fixed `row_block = 1` without reinstalling dependencies. For single-view texturing, `ASTRA_AMD_NAF_TILE` defaults to `2` and enables the upstream tiled NAF path. Padding is bounded to each row block instead of allocating a full padded copy. The AMD UV branch reuses ComfyUI's existing PyTorch/NumPy UV unwrap, tiled barycentric rasterizer and interpolation helpers instead of CuMesh UV unwrap and nvdiffrast.
 
 Verified on 2026-11-02 with ROCm `7.2.26015-fc0010cf6a`: CPU reference maximum absolute error `2.22e-16`, GPU-versus-CPU maximum absolute error `4.77e-7`. The bounded microbenchmark used kernel 9, four heads, dimension 64 and value dimension 128:
 
@@ -121,25 +121,27 @@ The full single-view 1024/Heun profile then completed successfully with block 2:
 
 Opt-in AMD single-view `COLOR_0` vertex painting was verified with the draft 512 profile: job `4c3eeb6f-3d07-4a21-9baf-2af318f5fe42`, 321.3 s, 14,752.64 MB VRAM peak (3,267.55 MB baseline), 98,615 triangles and 49,865 vertices. The 1,982,160-byte normalized GLB passed validation with `COLOR_0` required and is saved as `data/runtime/amd-pixal3d-single-colors.glb`. Its external four-view render found 2,947 distinct rounded RGB values, all finite. Shape-only generation remains the default; multi-view vertex colors and the standard 1024 vertex-color combination have not been verified.
 
+Opt-in AMD single-view UV base color texturing was also verified with draft 512 geometry, texture latent 1024 and a 512 × 512 atlas: job `bc208684-a3dc-4b7f-9a2d-4a612af740f7`, 389.1 s, 14,731.38 MB VRAM peak (4,450.46 MB baseline), 98,525 triangles and 60,117 vertices after UV vertex splitting. The 2,735,876-byte normalized GLB contains `TEXCOORD_0` and an embedded PNG `baseColorTexture`; strict validation passed before and after normalization. It is saved as `data/runtime/amd-pixal3d-single-uv.glb`. The extracted atlas has 7,181 distinct rounded RGB values, all finite, and the external four-view renderer displayed the actual PBR base color. Use `"uvTexture": true` in `POST /api/jobs`, or `AMD_PIXAL3D_UV_TEXTURE=1 node scripts/verify_amd_pixal3d_e2e.mjs` for the hardware runner. This option requires the AMD WSL single-view workflow and cannot be combined with `vertexColors`.
+
 ## Licences
 
 - Pixal3D (code and weights, Tencent ARC) — MIT; TRELLIS.2 and the ComfyUI-Trellis2 wrapper — MIT; MoGe — MIT; NAF — Apache-2.0.
 - DINOv3 — the DINOv3 licence (commercial use is allowed; when redistributing weights its text must be included); the weights come from the official copy `timm/vit_large_patch16_dinov3.lvd1689m`
   (converted to the transformers format by a converter, the licence text lies alongside).
-- **nvdiffrast (NVIDIA) is not used by the AMD path**: it has a non-commercial licence. The AMD `COLOR_0` graph sets `bake_on_vertices: true`; CUDA UV unwrapping, UV/PBR baking and rasterisation are disabled. The test `tests/pixal3d.test.mjs` prevents UV unwrap, rasterizer, renderer and nvdiffrast nodes from appearing in either graph.
+- **nvdiffrast (NVIDIA) is not used by the AMD path**: it has a non-commercial licence. AMD `COLOR_0` sets `bake_on_vertices: true`; AMD UV texturing sets it to `false` and uses ComfyUI's existing CPU unwrap and PyTorch/NumPy rasterization helpers. The NVIDIA CuMesh/nvdiffrast branch remains unchanged for non-AMD runtimes.
 
 ## Limitations
 
-- VRAM: draft shape generation needs about 10 GB; the verified full 1024 shape profile peaked at 15.3 GB and draft vertex coloring at 14.8 GB. If another program holds memory (Blender, a browser with WebGL, a game), the job can end with an "out of video memory" error.
+- VRAM: draft shape generation needs about 10 GB; the verified full 1024 shape profile peaked at 15.3 GB, draft vertex coloring at 14.8 GB and draft UV texturing at 14.7 GB. If another program holds memory (Blender, a browser with WebGL, a game), the job can end with an "out of video memory" error.
 - Progress goes by phases with a timer: the engine itself does not report steps inside phases, so the bar moves in stages (the percentages are an estimate, not exact progress).
 - Cancel interrupts the job at a ComfyUI node boundary: it can take up to a minute for the engine to stop; the next job on the other engine waits for it.
 - One view is worse than four (0.90/0.71/0.87/0.74): the side and back are completed by inference. For a final character use views.
-- Checked on a humanoid in a T-pose (the test character). Four-legged creatures and objects were not checked.
-- Shape-only output remains the default and uses the existing studio painting steps. AMD `COLOR_0` is an opt-in single-view alternative, not a UV/PBR texture pipeline; multi-view coloring is rejected and the standard 1024 coloring combination is unverified.
+- Checked on a humanoid in a T-pose (the test character) and on the deterministic RGBA test object used by the AMD hardware runner. Four-legged creatures were not checked.
+- Shape-only output remains the default and uses the existing studio painting steps. AMD vertex colors and UV base color are separate opt-in single-view alternatives. Multi-view UV, a 1024 atlas, standard 1024 geometry with UV, and normal/AO texture generation have not been verified or implemented as verified features.
 
 ## Tests
 
-`tests/pixal3d.test.mjs` covers the shape-only and AMD `COLOR_0` graphs, the ban on CUDA UV/rasterizer nodes, required `COLOR_0` validation before and after GLB normalization, settings and installation lookup, engine start with a fake process, and generation against a fake ComfyUI with a websocket. `tests/amd-pixal3d-e2e.test.mjs` covers the hardware runner options and output naming; `tests/amd-wsl-scripts.test.mjs` guards the bounded NAF and vertex-color patches. `tests/gpu-handover.test.mjs` covers waiting for a busy engine without interruption, unloading, skipping a non-running one, the lock around the handover, and two jobs on different engines never running together.
+`tests/pixal3d.test.mjs` covers shape-only, AMD `COLOR_0` and AMD UV graphs, mutually exclusive texturing options, required vertex-color or UV/material/embedded-PNG validation before and after GLB normalization, settings and installation lookup, engine start with a fake process, and generation against a fake ComfyUI with a websocket. `tests/amd-pixal3d-e2e.test.mjs` covers the hardware runner options and output naming; `tests/amd-wsl-scripts.test.mjs` guards the bounded NAF, vertex-color and AMD UV unwrap/rasterizer patches. `tests/gpu-handover.test.mjs` covers waiting for a busy engine without interruption, unloading, skipping a non-running one, the lock around the handover, and two jobs on different engines never running together.
 
 ## Files
 
