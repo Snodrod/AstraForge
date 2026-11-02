@@ -33,6 +33,7 @@ export const PIXAL3D_PHASES = {
   Trellis2SimplifyMesh: [94, 95, 'Simplifying the mesh'],
   Trellis2FillHolesNicelyWithMeshlib: [95, 97, 'Closing holes · meshlib'],
   Trellis2MeshWithVoxelToTrimesh: [97, 98, 'Assembling the mesh'],
+  Trellis2MeshTexturingPixal3DMultiView: [97, 98, 'Painting mesh vertices · AMD'],
   Trellis2ExportMesh: [98, 98, 'Saving GLB'],
 };
 
@@ -150,7 +151,7 @@ export async function generatePixal3d(o) {
   await (deps.start || startPixal3dRuntime)({ cfg, signal, onProgress: (message) => onProgress?.({ percent: 0, message }) });
   signal?.throwIfAborted();
 
-  const workflowFor = (names) => pixal3dWorkflow(names, { seed, prefix: 'astra/px-' + tag, targetFaces, sampler: o.sampler || 'heun', removeBackground: !!o.removeBackground, runtimeBackend: cfg.backend, quality });
+  const workflowFor = (names) => pixal3dWorkflow(names, { seed, prefix: 'astra/px-' + tag, targetFaces, sampler: o.sampler || 'heun', removeBackground: !!o.removeBackground, runtimeBackend: cfg.backend, quality, vertexColors: !!o.vertexColors });
   const wanted = [...new Set(Object.values(workflowFor(Object.fromEntries(slots.map((s) => [s, s])))).map((n) => n.class_type))];
   let info;
   try { info = await comfyJson(cfg.url + '/object_info', { signal: AbortSignal.timeout(30000) }); } catch { throw new Error('The Pixal3D engine is not responding. See data/runtime/pixal3d.log.'); }
@@ -207,13 +208,13 @@ export async function generatePixal3d(o) {
     }
     onProgress?.({ percent: 98, message: 'Fetching and normalizing the GLB' });
     const raw = await downloadGlb(cfg.url, item, signal);
-    validateGeneratedMesh(raw);
+    validateGeneratedMesh(raw, { requireVertexColors: !!o.vertexColors });
     const normalized = normalizeGlb(raw);
-    validateGeneratedMesh(normalized.buffer);
+    validateGeneratedMesh(normalized.buffer, { requireVertexColors: !!o.vertexColors });
     const vram = vramProbe ? await comfyJson(cfg.url + '/af/vram/stop', { method: 'POST', signal: AbortSignal.timeout(3000) }).catch(() => null) : null;
     vramProbe = false;
     return {
-      buffer: normalized.buffer, seconds: Math.round((Date.now() - started) / 100) / 10, promptId, slots, seed, quality, targetFaces, rawBytes: raw.length, url: cfg.url, vram, handover: gpu.handover || null,
+      buffer: normalized.buffer, seconds: Math.round((Date.now() - started) / 100) / 10, promptId, slots, seed, quality, targetFaces, vertexColors: !!o.vertexColors, rawBytes: raw.length, url: cfg.url, vram, handover: gpu.handover || null,
       normalization: { scale: normalized.scale, center: normalized.center, extentBefore: normalized.before.extent, extentAfter: normalized.after.extent },
     };
   } catch (error) {

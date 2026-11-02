@@ -6,7 +6,7 @@ export const generationSchema=z.object({imageId:z.string().uuid().optional(),pro
  viewSetId:z.string().uuid().optional(),
  // Shape engine: 'hunyuan' (default - the previous API behaviour), 'pixal3d' (docs/forge/pixal3d.md) or 'auto' (Pixal3D if installed, otherwise Hunyuan).
  // For 'pixal3d', quality selects draft (4-step Euler, 512) or the standard/high Heun cascade (1024); shapeModel and meshLevel are not used.
- engine:z.enum(['auto','hunyuan','pixal3d']).default('hunyuan')}).refine(x=>x.imageId||x.viewSetId||x.prompt.trim(),'Upload a concept or write a description.')
+ engine:z.enum(['auto','hunyuan','pixal3d']).default('hunyuan'),vertexColors:z.boolean().default(false)}).refine(x=>x.imageId||x.viewSetId||x.prompt.trim(),'Upload a concept or write a description.')
  // The exhaust haze filter is passed to scripts/prepare_concept.py inside backgroundMode: '<background>:haze=<on|off>' ('auto' is the Python default).
  .transform(x=>x.hazeFilter==='auto'?x:{...x,backgroundMode:`${x.backgroundMode}:haze=${x.hazeFilter}`});
 export const chatSchema=z.object({message:z.string().min(1).max(6000),context:z.string().max(15000).default(''),history:z.array(z.object({role:z.enum(['user','assistant']),content:z.string().max(6000)})).max(12).default([])});
@@ -44,17 +44,18 @@ export function hunyuanMultiViewWorkflow(images,checkpoint,quality,seed,prefix,m
  w['4']={class_type:'Hunyuan3Dv2ConditioningMultiView',inputs:cond};
  return w;
 }
-// Pixal3D (TencentARC, MIT) shape generation in the separate ComfyUI-Pixal3D (port 8191): SHAPE ONLY.
-// The texturing stage of TRELLIS.2/Pixal3D needs NVIDIA nvdiffrast (non-commercial licence), so no node of it may ever appear here;
-// tests/pixal3d.test.mjs guards that. Settings are the ones chosen on the militia evaluation (docs/forge/pixal3d.md):
-// heun sampler, 700k faces, fixed FOV 0.1 rad for several views, MoGe camera for one view.
+// Pixal3D (TencentARC, MIT) generation in the separate ComfyUI-Pixal3D (port 8191): shape by default.
+// AMD single-view jobs may opt into COLOR_0 vertex painting; UV unwrapping and nvdiffrast stay disabled.
+// tests/pixal3d.test.mjs guards both paths. Settings are the ones chosen on the militia evaluation
+// (docs/forge/pixal3d.md): heun sampler, 700k faces, fixed FOV 0.1 rad for several views, MoGe camera for one view.
 // images: {front:'a.png', left?, back?, right?} = RGBA cut-outs (names inside the Pixal3D ComfyUI input folder); front is required.
 // With only the front view the single-view graph is built, otherwise the multi-view one (azimuths 0/90/180/270 = front/left/back/right).
 export const PIXAL3D_MODEL='TencentARC/Pixal3D';
 export const PIXAL3D_AZIMUTH={front:0,left:90,back:180,right:270};
-export function pixal3dWorkflow(images,{seed=1000,prefix='astra/pixal3d',targetFaces=700000,sampler='heun',fovRad=0.1,removeBackground=false,runtimeBackend='windows',quality='standard'}={}){
+export function pixal3dWorkflow(images,{seed=1000,prefix='astra/pixal3d',targetFaces=700000,sampler='heun',fovRad=0.1,removeBackground=false,runtimeBackend='windows',quality='standard',vertexColors=false}={}){
  if(!images?.front)throw new Error('Pixal3D requires a front view.');
  const slots=MV_SLOTS.filter(slot=>images[slot]),multi=slots.length>1,draft=quality==='draft';
+ if(vertexColors&&multi)throw new Error('Pixal3D vertex colors currently require the single-view workflow.');
  const attention=runtimeBackend==='wsl'?'sdpa':'flash_attn';
  if(draft)sampler='euler';
  const g={};
@@ -86,7 +87,15 @@ export function pixal3dWorkflow(images,{seed=1000,prefix='astra/pixal3d',targetF
  g['24']={class_type:'Trellis2FillHolesWithCuMesh',inputs:{mesh:['23',0],max_permieters:1}}; // CuMesh (MIT), not meshlib: meshlib has a non-commercial-only license
  g['25']={class_type:'Trellis2SimplifyMesh',inputs:{mesh:['24',0],target_face_num:targetFaces,method:'Cumesh'}};
  g['26']={class_type:'Trellis2MeshWithVoxelToTrimesh',inputs:{mesh:['25',0],reorient_vertices:'None'}};
- g['27']={class_type:'Trellis2ExportMesh',inputs:{trimesh:['26',0],filename_prefix:prefix,file_format:'glb'}};
+ if(vertexColors)g['40']={class_type:'Trellis2MeshTexturingPixal3DMultiView',inputs:{
+  pipeline:[decoded,2],trimesh:['26',0],image:['3',0],moge_camera_config:['4',3],seed,
+  texture_steps:12,texture_guidance_strength:1,texture_guidance_rescale:0,texture_rescale_t:3,
+  resolution:1024,texture_size:512,texture_alpha_mode:'OPAQUE',double_side_material:false,
+  texture_guidance_interval_start:0.6,texture_guidance_interval_end:0.9,bake_on_vertices:true,
+  use_custom_normals:false,mesh_cluster_threshold_cone_half_angle_rad:60,mesh_orientation:'none',
+  sampler:'euler',inpainting:'telea',verbose:false,dino_lock:0,dino_substeps:4,dino_foundation_cap:1,
+ }};
+ g['27']={class_type:'Trellis2ExportMesh',inputs:{trimesh:[vertexColors?'40':'26',0],filename_prefix:prefix,file_format:'glb'}};
  return g;
 }
 export function sdxlWorkflow(prompt,checkpoint,seed,prefix){return {

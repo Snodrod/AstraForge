@@ -149,9 +149,70 @@ def patch_lazy_precision(node):
     path.write_text(text, encoding='utf-8')
 
 
+def patch_vertex_colors(node):
+    path = node / 'trellis2/pipelines/trellis2_image_to_3d.py'
+    text = path.read_text(encoding='utf-8')
+    text = replace_once(
+        text,
+        "        if hasattr(mesh, 'visual') and hasattr(mesh.visual, 'uv') and mesh.visual.uv is not None:\n",
+        "        if not bake_on_vertices and hasattr(mesh, 'visual') and hasattr(mesh.visual, 'uv') and mesh.visual.uv is not None:\n",
+        'vertex color UV guard',
+    )
+    text = replace_once(
+        text,
+        '        else:\n            _cumesh = cumesh.CuMesh()\n',
+        '        elif not bake_on_vertices:\n            _cumesh = cumesh.CuMesh()\n',
+        'vertex color unwrap skip',
+    )
+    text = replace_once(
+        text,
+        '            image_cond_model = self.load_pixal3d_image_cond_tex_1024()\n            cond = self.get_proj_cond_shape(\n',
+        """            image_cond_model = self.load_pixal3d_image_cond_tex_1024()
+            if os.environ.get('ASTRA_AMD_ROCM') == '1':
+                # ASTRAFORGE AMD ROCm PATCH: stream the 1024 NAF projection in four tiles.
+                image_cond_model.naf_tile_factor = int(os.environ.get('ASTRA_AMD_NAF_TILE', '2'))
+            cond = self.get_proj_cond_shape(
+""",
+        'AMD vertex color NAF tiling',
+    )
+    path.write_text(text, encoding='utf-8')
+
+
 def patch_naf(root):
     path = root / 'src/layers/attentions.py'
     text = path.read_text(encoding='utf-8')
+    row_block = "        row_block = max(1, min(height, int(os.environ.get('ASTRA_AMD_NAF_ROW_BLOCK', '2'))))\n"
+    text = re.sub(r'^        row_block = .*$', row_block.rstrip('\n'), text, count=1, flags=re.M)
+    if row_block in text and '        import os\n' not in text:
+        text = text.replace('        outputs = []\n', '        outputs = []\n        import os\n', 1)
+    previous_band = """        k = F.pad(k, (pad_w, pad_w, pad_h, pad_h))
+        v = F.pad(v, (pad_w, pad_w, pad_h, pad_h))
+        outputs = []
+        import os
+        row_block = max(1, min(height, int(os.environ.get('ASTRA_AMD_NAF_ROW_BLOCK', '2'))))
+        for start in range(0, height, row_block):
+            rows = min(row_block, height - start)
+            band_height = rows + (kh - 1) * dh
+            band = slice(start, start + band_height)
+            kb = F.unfold(k[:, :, band, :], kernel_size=(kh, kw), dilation=(dh, dw))
+            vb = F.unfold(v[:, :, band, :], kernel_size=(kh, kw), dilation=(dh, dw))
+"""
+    bounded_band = """        outputs = []
+        import os
+        row_block = max(1, min(height, int(os.environ.get('ASTRA_AMD_NAF_ROW_BLOCK', '2'))))
+        for start in range(0, height, row_block):
+            rows = min(row_block, height - start)
+            band_height = rows + (kh - 1) * dh
+            band_start = max(0, start - pad_h)
+            band_end = min(height, start + rows + pad_h)
+            pad_top = band_start + pad_h - start
+            pad_bottom = start + band_height - band_end - pad_h
+            kb = F.pad(k[:, :, band_start:band_end, :], (pad_w, pad_w, pad_top, pad_bottom))
+            vb = F.pad(v[:, :, band_start:band_end, :], (pad_w, pad_w, pad_top, pad_bottom))
+            kb = F.unfold(kb, kernel_size=(kh, kw), dilation=(dh, dw))
+            vb = F.unfold(vb, kernel_size=(kh, kw), dilation=(dh, dw))
+"""
+    text = text.replace(previous_band, bounded_band, 1)
     text = replace_once(
         text,
         """try:
@@ -179,17 +240,20 @@ except ImportError:
         v = v.permute(0, 3, 4, 1, 2).reshape(batch * heads, value_dim, height, width)
         pad_h = (kh - 1) * dh // 2
         pad_w = (kw - 1) * dw // 2
-        k = F.pad(k, (pad_w, pad_w, pad_h, pad_h))
-        v = F.pad(v, (pad_w, pad_w, pad_h, pad_h))
         outputs = []
         import os
-        row_block = max(1, min(height, int(os.environ.get('ASTRA_AMD_NAF_ROW_BLOCK', '4'))))
+        row_block = max(1, min(height, int(os.environ.get('ASTRA_AMD_NAF_ROW_BLOCK', '2'))))
         for start in range(0, height, row_block):
             rows = min(row_block, height - start)
             band_height = rows + (kh - 1) * dh
-            band = slice(start, start + band_height)
-            kb = F.unfold(k[:, :, band, :], kernel_size=(kh, kw), dilation=(dh, dw))
-            vb = F.unfold(v[:, :, band, :], kernel_size=(kh, kw), dilation=(dh, dw))
+            band_start = max(0, start - pad_h)
+            band_end = min(height, start + rows + pad_h)
+            pad_top = band_start + pad_h - start
+            pad_bottom = start + band_height - band_end - pad_h
+            kb = F.pad(k[:, :, band_start:band_end, :], (pad_w, pad_w, pad_top, pad_bottom))
+            vb = F.pad(v[:, :, band_start:band_end, :], (pad_w, pad_w, pad_top, pad_bottom))
+            kb = F.unfold(kb, kernel_size=(kh, kw), dilation=(dh, dw))
+            vb = F.unfold(vb, kernel_size=(kh, kw), dilation=(dh, dw))
             kb = kb.reshape(batch, heads, dim, kh, kw, rows, width).permute(0, 5, 6, 1, 3, 4, 2)
             vb = vb.reshape(batch, heads, value_dim, kh, kw, rows, width).permute(0, 5, 6, 1, 3, 4, 2)
             weights = torch.einsum('brwnd,brwnkld->brwnkl', q[:, start:start + rows], kb) * scale
@@ -235,6 +299,7 @@ def main():
     node = Path(sys.argv[1]).resolve()
     patch_nvidia_imports(node)
     patch_sparse_sdpa(node)
+    patch_vertex_colors(node)
     if len(sys.argv) > 2:
         flex_config = Path(sys.argv[2]) / 'flex_gemm/kernels/triton/spconv/config.py'
         text = flex_config.read_text(encoding='utf-8')

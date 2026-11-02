@@ -9,8 +9,12 @@ const sleep = (ms) => new Promise((resolveSleep) => setTimeout(resolveSleep, ms)
 
 export function parseOptions(env = process.env) {
   const views = env.AMD_PIXAL3D_VIEWS || 'single';
+  const quality = env.AMD_PIXAL3D_QUALITY || 'draft';
+  const vertexColors = env.AMD_PIXAL3D_VERTEX_COLORS === '1';
   if (!['single', 'multi'].includes(views)) throw new Error('AMD_PIXAL3D_VIEWS must be single or multi.');
-  return { views, jobId: env.AMD_PIXAL3D_JOB_ID || null };
+  if (!['draft', 'standard'].includes(quality)) throw new Error('AMD_PIXAL3D_QUALITY must be draft or standard.');
+  if (vertexColors && views !== 'single') throw new Error('AMD Pixal3D vertex colors require the single-view workflow.');
+  return { views, jobId: env.AMD_PIXAL3D_JOB_ID || null, quality, vertexColors };
 }
 
 async function request(path, options = {}) {
@@ -132,7 +136,7 @@ async function main() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ...input, engine: 'pixal3d', quality: 'draft', seed: 42, backgroundMode: 'alpha', hazeFilter: 'auto',
+        ...input, engine: 'pixal3d', quality: options.quality, vertexColors: options.vertexColors, seed: 42, backgroundMode: 'alpha', hazeFilter: 'auto',
       }),
     });
   }
@@ -157,14 +161,17 @@ async function main() {
   const out = resolve('data/runtime');
   mkdirSync(out, { recursive: true });
   const png = await download(`/api/assets/${result.imageId}`, resolve(out, `amd-pixal3d-${options.views}-input.png`));
-  const glbPath = resolve(out, `amd-pixal3d-${options.views}.glb`);
+  const suffix = options.vertexColors ? '-colors' : options.quality === 'standard' ? '-standard' : '';
+  const glbPath = resolve(out, `amd-pixal3d-${options.views}${suffix}.glb`);
   const glb = await download(`/api/assets/${result.asset.id}`, glbPath);
   if (png.length < 100 || png.subarray(1, 4).toString() !== 'PNG') throw new Error('Invalid input PNG.');
-  const geometry = validateGeneratedMesh(glb);
+  const geometry = validateGeneratedMesh(glb, { requireVertexColors: options.vertexColors });
   console.log(JSON.stringify({
     job: job.id,
     engine: result.engine,
     views: options.views,
+    quality: options.quality,
+    vertexColors: options.vertexColors,
     pngBytes: png.length,
     glbBytes: glb.length,
     glbPath,

@@ -104,6 +104,40 @@ test('AMD precision is applied whenever lazy decoders are loaded', async () => {
   assert.equal((patched.match(/def bf16_safe_forward/g) || []).length, 1);
 });
 
+test('AMD vertex colors skip the CUDA UV unwrap branch', async () => {
+  const { mkdtempSync, mkdirSync, writeFileSync, readFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { spawnSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const root = mkdtempSync(join(tmpdir(), 'astraforge-vertex-colors-'));
+  const pipelineDir = join(root, 'trellis2', 'pipelines');
+  mkdirSync(pipelineDir, { recursive: true });
+  const pipeline = join(pipelineDir, 'trellis2_image_to_3d.py');
+  writeFileSync(pipeline, [
+    "        if hasattr(mesh, 'visual') and hasattr(mesh.visual, 'uv') and mesh.visual.uv is not None:",
+    '            uvs = mesh.visual.uv.copy()',
+    '        else:',
+    '            _cumesh = cumesh.CuMesh()',
+    '            image_cond_model = self.load_pixal3d_image_cond_tex_1024()',
+    '            cond = self.get_proj_cond_shape(',
+    '',
+  ].join('\n'));
+  const patch = fileURLToPath(new URL('../scripts/wsl/patch_trellis2_amd.py', import.meta.url));
+  const result = spawnSync('python', ['-c', [
+    'import importlib.util, sys',
+    'spec = importlib.util.spec_from_file_location("patch", sys.argv[1])',
+    'module = importlib.util.module_from_spec(spec)',
+    'spec.loader.exec_module(module)',
+    'module.patch_vertex_colors(__import__("pathlib").Path(sys.argv[2]))',
+  ].join(';'), patch, root], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const patched = readFileSync(pipeline, 'utf8');
+  assert.match(patched, /if not bake_on_vertices and hasattr\(mesh, 'visual'\)/);
+  assert.match(patched, /elif not bake_on_vertices:/);
+  assert.match(patched, /image_cond_model\.naf_tile_factor = int\(os\.environ\.get\('ASTRA_AMD_NAF_TILE', '2'\)\)/);
+});
+
 test('NAF uses a bounded PyTorch attention fallback without NATTEN', async () => {
   const { mkdtempSync, mkdirSync, writeFileSync, readFileSync } = await import('node:fs');
   const { tmpdir } = await import('node:os');
@@ -141,8 +175,38 @@ test('NAF uses a bounded PyTorch attention fallback without NATTEN', async () =>
   assert.match(patched, /row_block = max\(1, min\(height,/);
   assert.doesNotMatch(patched, /row_block = 1\s/);
   assert.match(patched, /torch\.einsum/);
+  assert.doesNotMatch(patched, /^        [kv] = F\.pad\([kv],/m);
+  assert.match(patched, /band_start = max\(0, start - pad_h\)/);
+  assert.match(patched, /F\.pad\(k\[:, :, band_start:band_end, :\]/);
   assert.doesNotMatch(patched, /except:\r?\n/);
   assert.match(readFileSync(hubconf, 'utf8'), /dependencies = \["torch"\]/);
+  const legacy = patched.replace(/^        row_block = .*$/m, '        row_block = 1');
+  assert.notEqual(legacy, patched);
+  writeFileSync(attentions, legacy);
+  const upgrade = spawnSync('python', [patch, '--naf', root], { encoding: 'utf8' });
+  assert.equal(upgrade.status, 0, upgrade.stderr);
+  const upgraded = readFileSync(attentions, 'utf8');
+  assert.match(upgraded, /ASTRA_AMD_NAF_ROW_BLOCK/);
+  const previousBand = upgraded.replace(/        pad_h = [\s\S]*?            vb = F\.unfold\(vb, kernel_size=\(kh, kw\), dilation=\(dh, dw\)\)/, [
+    '        pad_h = (kh - 1) * dh // 2',
+    '        pad_w = (kw - 1) * dw // 2',
+    '        k = F.pad(k, (pad_w, pad_w, pad_h, pad_h))',
+    '        v = F.pad(v, (pad_w, pad_w, pad_h, pad_h))',
+    '        outputs = []',
+    '        import os',
+    "        row_block = max(1, min(height, int(os.environ.get('ASTRA_AMD_NAF_ROW_BLOCK', '2'))))",
+    '        for start in range(0, height, row_block):',
+    '            rows = min(row_block, height - start)',
+    '            band_height = rows + (kh - 1) * dh',
+    '            band = slice(start, start + band_height)',
+    '            kb = F.unfold(k[:, :, band, :], kernel_size=(kh, kw), dilation=(dh, dw))',
+    '            vb = F.unfold(v[:, :, band, :], kernel_size=(kh, kw), dilation=(dh, dw))',
+  ].join('\n'));
+  assert.notEqual(previousBand, upgraded);
+  writeFileSync(attentions, previousBand);
+  const memoryUpgrade = spawnSync('python', [patch, '--naf', root], { encoding: 'utf8' });
+  assert.equal(memoryUpgrade.status, 0, memoryUpgrade.stderr);
+  assert.doesNotMatch(readFileSync(attentions, 'utf8'), /^        [kv] = F\.pad\([kv],/m);
 });
 
 test('NAF verification covers odd shapes and bounded benchmark memory', () => {
