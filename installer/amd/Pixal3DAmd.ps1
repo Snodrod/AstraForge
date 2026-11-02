@@ -72,6 +72,8 @@ function InstallAmdPixal3dWeights() {
     New-Item -ItemType Directory -Force -Path $hub | Out-Null
     P3Repo $m.naf.url ('NAF-' + $m.naf.commit.Substring(0, 8)) $naf
   }
+  $nafPatch = ConvertTo-AmdWslPath (Join-Path $Root 'scripts\wsl\patch_trellis2_amd.py')
+  Run 'wsl.exe' @('-d', $AmdPixalDistro, '--', '/opt/astraforge/pixal3d-venv/bin/python', $nafPatch, '--naf', (ConvertTo-AmdWslPath $naf)) 'NAF PyTorch attention for AMD ROCm'
   $ck = $m.naf.checkpoint
   DownloadChecked $ck.url (Join-Path $hub 'checkpoints\naf_release.pth') ([long]$ck.size) $ck.sha256
 

@@ -5,7 +5,7 @@ export const generationSchema=z.object({imageId:z.string().uuid().optional(),pro
  // View set (server/views.mjs): geometry from front/left/back/right in Hunyuan3D-2mv; imageId is then the front view of the set.
  viewSetId:z.string().uuid().optional(),
  // Shape engine: 'hunyuan' (default - the previous API behaviour), 'pixal3d' (docs/forge/pixal3d.md) or 'auto' (Pixal3D if installed, otherwise Hunyuan).
- // For 'pixal3d' the quality, shapeModel and meshLevel fields are not used.
+ // For 'pixal3d', quality selects draft (4-step Euler, 512) or the standard/high Heun cascade (1024); shapeModel and meshLevel are not used.
  engine:z.enum(['auto','hunyuan','pixal3d']).default('hunyuan')}).refine(x=>x.imageId||x.viewSetId||x.prompt.trim(),'Upload a concept or write a description.')
  // The exhaust haze filter is passed to scripts/prepare_concept.py inside backgroundMode: '<background>:haze=<on|off>' ('auto' is the Python default).
  .transform(x=>x.hazeFilter==='auto'?x:{...x,backgroundMode:`${x.backgroundMode}:haze=${x.hazeFilter}`});
@@ -52,17 +52,18 @@ export function hunyuanMultiViewWorkflow(images,checkpoint,quality,seed,prefix,m
 // With only the front view the single-view graph is built, otherwise the multi-view one (azimuths 0/90/180/270 = front/left/back/right).
 export const PIXAL3D_MODEL='TencentARC/Pixal3D';
 export const PIXAL3D_AZIMUTH={front:0,left:90,back:180,right:270};
-export function pixal3dWorkflow(images,{seed=1000,prefix='astra/pixal3d',targetFaces=700000,sampler='heun',fovRad=0.1,removeBackground=false,runtimeBackend='windows'}={}){
+export function pixal3dWorkflow(images,{seed=1000,prefix='astra/pixal3d',targetFaces=700000,sampler='heun',fovRad=0.1,removeBackground=false,runtimeBackend='windows',quality='standard'}={}){
  if(!images?.front)throw new Error('Pixal3D requires a front view.');
- const slots=MV_SLOTS.filter(slot=>images[slot]),multi=slots.length>1;
+ const slots=MV_SLOTS.filter(slot=>images[slot]),multi=slots.length>1,draft=quality==='draft';
  const attention=runtimeBackend==='wsl'?'sdpa':'flash_attn';
+ if(draft)sampler='euler';
  const g={};
  g['1']={class_type:'Trellis2LoadModel',inputs:{modelname:PIXAL3D_MODEL,backend:attention,device:'cuda',low_vram:true,keep_models_loaded:false,conv_backend:'flex_gemm',sparse_backend:attention,use_reconviagen:false,pixal3d_multiview:multi}};
  g['2']={class_type:'Trellis2LoadImageWithTransparency',inputs:{image:images.front}};
  g['3']={class_type:'Trellis2PreProcessImage',inputs:{image:['2',2],padding:5,remove_background:removeBackground,max_size:1024}};
  g['4']={class_type:'Trellis2ImageCondGenerator',inputs:{pipeline:['1',0],image:['3',0],max_views:1}};
- const sparse={pipeline:['4',2],image_cond:['4',0],seed,sparse_structure_steps:25,sparse_structure_guidance_strength:7.5,sparse_structure_guidance_rescale:0.7,sparse_structure_rescale_t:5,sparse_structure_sampler:sampler,sparse_structure_resolution:32,sparse_structure_guidance_interval_start:0.6,sparse_structure_guidance_interval_end:1,fill_holes:true,hole_iterations:1,verbose:false,dino_lock:0.65,dino_substeps:2,hole_fill_algorithm:'flood_fill',dino_foundation_cap:0.92,keep_only_shell:true};
- const shape={shape_steps:12,shape_guidance_strength:7.5,shape_guidance_rescale:0.5,shape_rescale_t:3,shape_sampler:sampler,shape_guidance_interval_start:0.6,shape_guidance_interval_end:1,verbose:false,dino_lock:0.65,dino_substeps:2,dino_foundation_cap:0.92};
+ const sparse={pipeline:['4',2],image_cond:['4',0],seed,sparse_structure_steps:draft?4:25,sparse_structure_guidance_strength:7.5,sparse_structure_guidance_rescale:0.7,sparse_structure_rescale_t:5,sparse_structure_sampler:sampler,sparse_structure_resolution:32,sparse_structure_guidance_interval_start:0.6,sparse_structure_guidance_interval_end:1,fill_holes:true,hole_iterations:1,verbose:false,dino_lock:0.65,dino_substeps:2,hole_fill_algorithm:'flood_fill',dino_foundation_cap:0.92,keep_only_shell:true};
+ const shape={shape_steps:draft?4:12,shape_guidance_strength:7.5,shape_guidance_rescale:0.5,shape_rescale_t:3,shape_sampler:sampler,shape_guidance_interval_start:0.6,shape_guidance_interval_end:1,verbose:false,dino_lock:0.65,dino_substeps:2,dino_foundation_cap:0.92};
  let camera={moge_camera_config:['4',3]};
  if(multi){
   const loads={front:'30',left:'31',back:'32',right:'33'};
@@ -76,10 +77,11 @@ export function pixal3dWorkflow(images,{seed=1000,prefix='astra/pixal3d',targetF
  }
  g['5']={class_type:'Trellis2SparseGenerator',inputs:{...sparse,...camera,image:['3',0]}};
  g['6']={class_type:'Trellis2ShapeGenerator',inputs:{...shape,pipeline:['5',2],image_cond:['4',0],coords:['5',0],resolution:512,image:['3',0],...camera}};
- g['7']={class_type:'Trellis2ShapeCascadeGenerator',inputs:{...shape,pipeline:['6',2],image_cond:['4',1],shape_slat:['6',0],from_resolution:['6',1],to_resolution:1024,sparse_structure_resolution:['5',1],max_num_tokens:999999,image:['3',0],...camera}};
- g['20']={class_type:'Trellis2DecodeLatents',inputs:{pipeline:['7',2],shape_slat:['7',0],resolution:['7',1],use_tiled_decoder:true}};
+ if(!draft)g['7']={class_type:'Trellis2ShapeCascadeGenerator',inputs:{...shape,pipeline:['6',2],image_cond:['4',1],shape_slat:['6',0],from_resolution:['6',1],to_resolution:1024,sparse_structure_resolution:['5',1],max_num_tokens:999999,image:['3',0],...camera}};
+ const decoded=draft?'6':'7';
+ g['20']={class_type:'Trellis2DecodeLatents',inputs:{pipeline:[decoded,2],shape_slat:[decoded,0],resolution:[decoded,1],use_tiled_decoder:true}};
  g['21']={class_type:'Trellis2FillHolesWithCuMesh',inputs:{mesh:['20',0],max_permieters:1}};
- g['22']={class_type:'Trellis2ReconstructMeshWithQuad',inputs:{mesh:['21',0],remesh_band:1,resolution:1024,remove_floaters:true,remove_inner_faces:true}};
+ g['22']={class_type:'Trellis2ReconstructMeshWithQuad',inputs:{mesh:['21',0],remesh_band:1,resolution:draft?512:1024,remove_floaters:true,remove_inner_faces:true}};
  g['23']={class_type:'Trellis2SimplifyMesh',inputs:{mesh:['22',0],target_face_num:targetFaces,method:'Cumesh'}};
  g['24']={class_type:'Trellis2FillHolesWithCuMesh',inputs:{mesh:['23',0],max_permieters:1}}; // CuMesh (MIT), not meshlib: meshlib has a non-commercial-only license
  g['25']={class_type:'Trellis2SimplifyMesh',inputs:{mesh:['24',0],target_face_num:targetFaces,method:'Cumesh'}};

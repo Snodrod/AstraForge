@@ -139,7 +139,8 @@ function followProgress({ url, clientId, workflow, onProgress, getPromptId, WebS
 export async function generatePixal3d(o) {
   const { signal, onProgress, onPrompt, onWait, deps = {} } = o;
   const cfg = o.cfg || pixal3dConfig();
-  const seed = Number.isFinite(Number(o.seed)) ? Number(o.seed) : 1000, targetFaces = o.targetFaces || 700000;
+  const quality = o.quality || 'standard';
+  const seed = Number.isFinite(Number(o.seed)) ? Number(o.seed) : 1000, targetFaces = o.targetFaces || (quality === 'draft' ? 100000 : 700000);
   const files = Object.fromEntries(Object.entries(o.images || {}).filter(([, file]) => file));
   if (!files.front) throw new Error('Pixal3D requires a front view.');
   const slots = ['front', 'left', 'back', 'right'].filter((s) => files[s]);
@@ -149,7 +150,7 @@ export async function generatePixal3d(o) {
   await (deps.start || startPixal3dRuntime)({ cfg, signal, onProgress: (message) => onProgress?.({ percent: 0, message }) });
   signal?.throwIfAborted();
 
-  const workflowFor = (names) => pixal3dWorkflow(names, { seed, prefix: 'astra/px-' + tag, targetFaces, sampler: o.sampler || 'heun', removeBackground: !!o.removeBackground, runtimeBackend: cfg.backend });
+  const workflowFor = (names) => pixal3dWorkflow(names, { seed, prefix: 'astra/px-' + tag, targetFaces, sampler: o.sampler || 'heun', removeBackground: !!o.removeBackground, runtimeBackend: cfg.backend, quality });
   const wanted = [...new Set(Object.values(workflowFor(Object.fromEntries(slots.map((s) => [s, s])))).map((n) => n.class_type))];
   let info;
   try { info = await comfyJson(cfg.url + '/object_info', { signal: AbortSignal.timeout(30000) }); } catch { throw new Error('The Pixal3D engine is not responding. See data/runtime/pixal3d.log.'); }
@@ -212,7 +213,7 @@ export async function generatePixal3d(o) {
     const vram = vramProbe ? await comfyJson(cfg.url + '/af/vram/stop', { method: 'POST', signal: AbortSignal.timeout(3000) }).catch(() => null) : null;
     vramProbe = false;
     return {
-      buffer: normalized.buffer, seconds: Math.round((Date.now() - started) / 100) / 10, promptId, slots, seed, targetFaces, rawBytes: raw.length, url: cfg.url, vram, handover: gpu.handover || null,
+      buffer: normalized.buffer, seconds: Math.round((Date.now() - started) / 100) / 10, promptId, slots, seed, quality, targetFaces, rawBytes: raw.length, url: cfg.url, vram, handover: gpu.handover || null,
       normalization: { scale: normalized.scale, center: normalized.center, extentBefore: normalized.before.extent, extentAfter: normalized.after.extent },
     };
   } catch (error) {

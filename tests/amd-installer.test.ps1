@@ -33,5 +33,6 @@ Assert ($amdPixal.Contains('install-pixal3d-amd.sh')) 'AMD Pixal3D must run the 
 Assert ($amdPixal.Contains('wsl-ready.json')) 'weights must require the ROCm probe'
 Assert (!$amdPixal.Contains('P3InstallEngine')) 'AMD must not install the Windows CUDA engine'
 Assert (!$amdPixal.Contains('P3Python')) 'AMD must not install Windows Python'
+Assert ($amdPixal.Contains('patch_trellis2_amd.py') -and $amdPixal.Contains('--naf')) 'AMD weights must patch NAF for ROCm'
 Assert (Test-Path (Join-Path $PSScriptRoot '..\Install AstraForge AMD.cmd')) 'AMD CMD entry point is required'
 Write-Host 'AMD installer unit tests passed'

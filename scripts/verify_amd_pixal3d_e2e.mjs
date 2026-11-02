@@ -132,7 +132,7 @@ async function main() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ...input, engine: 'pixal3d', seed: 42, backgroundMode: 'alpha', hazeFilter: 'auto',
+        ...input, engine: 'pixal3d', quality: 'draft', seed: 42, backgroundMode: 'alpha', hazeFilter: 'auto',
       }),
     });
   }

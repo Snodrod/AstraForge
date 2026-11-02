@@ -86,7 +86,7 @@ async function runPixal3d(j,config,signal){
   const info=await assetInfo(prepared.reference.id);images={front:path.join(data,'assets',info.id+info.extension)};
   removeBackground=String(j.backgroundMode||'').startsWith('keep');
  }
- const result=await generatePixal3d({images,seed:j.seed,tag:j.id.slice(0,8),signal,removeBackground,cfg,
+ const result=await generatePixal3d({images,seed:j.seed,quality:j.quality,tag:j.id.slice(0,8),signal,removeBackground,cfg,
   onProgress:({percent,message})=>{if(j.status==='running')void update(j,{progress:percent,message}).catch(()=>{});},
   onPrompt:promptId=>void update(j,{promptId}).catch(()=>{}),
   onWait:message=>{if(j.status==='running')void update(j,{message}).catch(()=>{});}});

@@ -68,6 +68,19 @@ test('pixal3dWorkflow: front only -> single-view graph with the MoGe camera and 
   assert.equal(pixal3dWorkflow({ front: 'f.png' }, { removeBackground: true })['3'].inputs.remove_background, true);
 });
 
+test('pixal3dWorkflow: draft uses a bounded 512 shape without the 1024 cascade', () => {
+  const w = pixal3dWorkflow({ front: 'f.png' }, { quality: 'draft', targetFaces: 100000 });
+  assert.equal(w['5'].inputs.sparse_structure_steps, 4);
+  assert.equal(w['5'].inputs.sparse_structure_sampler, 'euler');
+  assert.equal(w['6'].inputs.shape_steps, 4);
+  assert.equal(w['6'].inputs.shape_sampler, 'euler');
+  assert.equal(w['7'], undefined);
+  assert.deepEqual(w['20'].inputs.shape_slat, ['6', 0]);
+  assert.deepEqual(w['20'].inputs.resolution, ['6', 1]);
+  assert.equal(w['22'].inputs.resolution, 512);
+  assert.equal(w['23'].inputs.target_face_num, 100000);
+});
+
 test('pixal3dWorkflow: any subset with a front view; azimuths follow the views that exist', () => {
   const two = pixal3dWorkflow({ front: 'f.png', back: 'b.png' });
   assert.equal(two['38'].inputs.azimuths, '0,180');
@@ -482,6 +495,21 @@ test('generatePixal3d: one front view builds the single-view graph', async () =>
     assert.deepEqual(result.slots, ['front']);
     assert.equal(engine.state.prompt.prompt['1'].inputs.pixal3d_multiview, false);
     assert.equal(engine.state.uploads.length, 1);
+  } finally { await engine.close(); }
+});
+
+test('generatePixal3d: draft quality reaches the engine with bounded defaults', async () => {
+  const engine = await fakeEngine({ pollsBeforeDone: 0 });
+  try {
+    const result = await generatePixal3d({
+      images: cutFiles(['front']), quality: 'draft', tag: 'draft', cfg: { url: engine.url, dir: tmp, port: 1 },
+      deps: { start: startOk, acquire: async () => fakeLock(), free: async () => {} },
+    });
+    const graph = engine.state.prompt.prompt;
+    assert.equal(graph['5'].inputs.sparse_structure_steps, 4);
+    assert.equal(graph['7'], undefined);
+    assert.equal(result.targetFaces, 100000);
+    assert.equal(result.quality, 'draft');
   } finally { await engine.close(); }
 });
 

@@ -49,27 +49,12 @@ def patch_sparse_sdpa(node):
         "        pipeline.low_vram = low_vram\n",
         """        pipeline.low_vram = low_vram
         if os.environ.get('ASTRA_AMD_ROCM') == '1':
-            # ASTRAFORGE AMD ROCm PATCH: avoid MIOpen fp16 3D-conv NaNs.
-            pipeline.models['sparse_structure_decoder'].convert_to_fp32()
-            from .trellis2.modules.utils import MIX_PRECISION_MODULES
-            decoder = pipeline.models['shape_slat_decoder']
-            decoder.blocks.float()
-            def convert_to_bf16(module):
-                if isinstance(module, MIX_PRECISION_MODULES):
-                    for parameter in module.parameters():
-                        parameter.data = parameter.data.bfloat16()
-            decoder.blocks.apply(convert_to_bf16)
-            decoder.dtype = torch.bfloat16
-            original_decoder_forward = decoder.forward
-            def bf16_safe_forward(x, *args, **kwargs):
-                return original_decoder_forward(x.replace(x.feats.float()), *args, **kwargs)
-            decoder.forward = bf16_safe_forward
             import flex_gemm.kernels.triton.spconv.config as flexgemm_config
             flexgemm_config.allow_tf32 = False
             from .trellis2.modules.sparse.conv import config as sparse_conv_config
-            sparse_conv_config.FLEX_GEMM_ALGO = 'explicit_gemm'
+            sparse_conv_config.FLEX_GEMM_ALGO = 'implicit_gemm'
 """,
-        'ROCm model precision',
+        'ROCm convolution backend',
     )
     nodes.write_text(text, encoding='utf-8')
 
@@ -124,6 +109,102 @@ def patch_sparse_sdpa(node):
         'windowed cross attention',
     )
     windowed.write_text(text, encoding='utf-8')
+    patch_lazy_precision(node)
+
+
+def patch_lazy_precision(node):
+    path = node / 'trellis2/pipelines/trellis2_image_to_3d.py'
+    text = path.read_text(encoding='utf-8')
+    text = replace_once(
+        text,
+        "            self.models['sparse_structure_decoder'].to(self._device)\n",
+        """            self.models['sparse_structure_decoder'].to(self._device)
+            if os.environ.get('ASTRA_AMD_ROCM') == '1':
+                # ASTRAFORGE AMD ROCm PATCH: avoid MIOpen fp16 3D-conv NaNs.
+                self.models['sparse_structure_decoder'].convert_to_fp32()
+""",
+        'lazy sparse decoder precision',
+    )
+    text = replace_once(
+        text,
+        "            self.models['shape_slat_decoder'].to(self._device)\n",
+        """            self.models['shape_slat_decoder'].to(self._device)
+            if os.environ.get('ASTRA_AMD_ROCM') == '1':
+                from ..modules.utils import MIX_PRECISION_MODULES
+                decoder = self.models['shape_slat_decoder']
+                decoder.blocks.float()
+                def convert_to_bf16(module):
+                    if isinstance(module, MIX_PRECISION_MODULES):
+                        for parameter in module.parameters():
+                            parameter.data = parameter.data.bfloat16()
+                decoder.blocks.apply(convert_to_bf16)
+                decoder.dtype = torch.bfloat16
+                original_decoder_forward = decoder.forward
+                def bf16_safe_forward(x, *args, **kwargs):
+                    return original_decoder_forward(x.replace(x.feats.float()), *args, **kwargs)
+                decoder.forward = bf16_safe_forward
+""",
+        'lazy shape decoder precision',
+    )
+    path.write_text(text, encoding='utf-8')
+
+
+def patch_naf(root):
+    path = root / 'src/layers/attentions.py'
+    text = path.read_text(encoding='utf-8')
+    text = replace_once(
+        text,
+        """try:
+    NATTEN_RECENT = False
+    from natten.functional import na2d_av, na2d_qk
+except:
+    NATTEN_RECENT = True
+    from natten import na2d
+""",
+        """try:
+    NATTEN_RECENT = True
+    from natten import na2d
+except ImportError:
+    # ASTRAFORGE AMD ROCm PATCH: bounded PyTorch equivalent for NAF on ROCm.
+    NATTEN_RECENT = True
+    def na2d(q, k, v, kernel_size, dilation=(1, 1), stride=1, backend=None, scale=None):
+        if stride != 1:
+            raise NotImplementedError('The ROCm NAF fallback requires stride=1')
+        kh, kw = kernel_size if isinstance(kernel_size, tuple) else (kernel_size, kernel_size)
+        dh, dw = dilation if isinstance(dilation, tuple) else (dilation, dilation)
+        scale = q.shape[-1] ** -0.5 if scale is None else scale
+        batch, height, width, heads, dim = q.shape
+        value_dim = v.shape[-1]
+        k = k.permute(0, 3, 4, 1, 2).reshape(batch * heads, dim, height, width)
+        v = v.permute(0, 3, 4, 1, 2).reshape(batch * heads, value_dim, height, width)
+        pad_h = (kh - 1) * dh // 2
+        pad_w = (kw - 1) * dw // 2
+        k = F.pad(k, (pad_w, pad_w, pad_h, pad_h))
+        v = F.pad(v, (pad_w, pad_w, pad_h, pad_h))
+        outputs = []
+        row_block = 1
+        for start in range(0, height, row_block):
+            rows = min(row_block, height - start)
+            band_height = rows + (kh - 1) * dh
+            band = slice(start, start + band_height)
+            kb = F.unfold(k[:, :, band, :], kernel_size=(kh, kw), dilation=(dh, dw))
+            vb = F.unfold(v[:, :, band, :], kernel_size=(kh, kw), dilation=(dh, dw))
+            kb = kb.reshape(batch, heads, dim, kh, kw, rows, width).permute(0, 5, 6, 1, 3, 4, 2)
+            vb = vb.reshape(batch, heads, value_dim, kh, kw, rows, width).permute(0, 5, 6, 1, 3, 4, 2)
+            weights = torch.einsum('brwnd,brwnkld->brwnkl', q[:, start:start + rows], kb) * scale
+            weights = weights.flatten(-2).softmax(dim=-1).unflatten(-1, (kh, kw))
+            outputs.append(torch.einsum('brwnkl,brwnkld->brwnd', weights, vb))
+        return torch.cat(outputs, dim=1)
+""",
+        'NAF NATTEN import',
+    )
+    path.write_text(text, encoding='utf-8')
+    hubconf = root / 'hubconf.py'
+    text = hubconf.read_text(encoding='utf-8')
+    hubconf.write_text(text.replace(
+        'dependencies = ["torch", "natten"]',
+        'dependencies = ["torch"]  # ASTRAFORGE AMD ROCm PATCH: PyTorch NAF fallback',
+    ), encoding='utf-8')
 
 
 def patch_o_voxel(root):
@@ -145,6 +226,11 @@ def patch_o_voxel(root):
 
 
 def main():
+    if sys.argv[1] == '--naf':
+        node = Path(sys.argv[2]).resolve()
+        patch_naf(node)
+        print(f'{MARKER}: patched NAF at {node}')
+        return
     node = Path(sys.argv[1]).resolve()
     patch_nvidia_imports(node)
     patch_sparse_sdpa(node)
