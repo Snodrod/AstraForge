@@ -1,6 +1,6 @@
 # Pixal3D: the second 3D engine (more accurate than Hunyuan3D)
 
-State as of 2026-10-14. Relates to `docs/forge/views.md` (views) and `docs/forge/API.md`.
+State as of 2026-11-02. Relates to `docs/forge/views.md` (views) and `docs/forge/API.md`.
 
 ## What it is and why
 
@@ -24,11 +24,9 @@ view cut-outs (RGBA, norm/cut_<slot>.png) ──► ComfyUI-Pixal3D :8191 ──
 
 ## How to use
 
-**Studio.** The "Views" block and the "Geometry quality" section of the "Create" tab contain a **"3D engine"** switch: Pixal3D (more accurate, about 4 minutes,
-~10 GB VRAM) or Hunyuan3D (faster). If Pixal3D is installed, it is selected by default (the choice is remembered in the browser); if not, the Pixal3D button
-is inactive, and a note under the switch says what is missing. With Pixal3D the settings it does not need are hidden (shape generator, "Fast/Balanced/Detailed", surface level).
-It is an ordinary generation job: queue, phase-by-phase progress, cancel, the "Results" history (prefixed "Pixal3D ·"). A single view is handled by the "Create 3D model" button
-(~6 minutes), several views by "Create 3D from views" (~4 minutes). Errors are shown in the UI language.
+**Studio.** The "Views" block and the "Geometry quality" section of the "Create" tab contain a **"3D engine"** switch: Pixal3D (more accurate) or Hunyuan3D (faster). If Pixal3D is installed, it is selected by default (the choice is remembered in the browser); if not, the Pixal3D button
+is inactive, and a note under the switch says what is missing. Pixal3D offers draft 512 (four-step Euler, about 100k faces) and full 1024 (Heun cascade, about 700k faces); the unrelated shape-generator and surface-level settings are hidden.
+It is an ordinary generation job: queue, phase-by-phase progress, cancel, the "Results" history (prefixed "Pixal3D ·"). A single view is handled by the "Create 3D model" button, several views by "Create 3D from views". AMD multi-view 1024 is disabled in the UI with a reason and a one-click draft 512 alternative. Errors are shown in the UI language.
 
 **API.** `POST /api/jobs` with `"engine": "pixal3d"` (or `"auto"`); without the field Hunyuan3D works as before (`docs/forge/API.md`).
 
@@ -60,9 +58,9 @@ in `server/pixal3d.mjs`). If something is missing the studio does not crash: the
 An instance started by the studio gets its own database (`--database-url`, otherwise two ComfyUI instances of the same folder fight over `ComfyUI\user\comfyui.db`) and a temporary folder `data\runtime\pixal3d-temp`:
 by this marker `Stop.cmd` finds and stops exactly that instance, and on a normal studio exit it is removed together with it.
 
-**Fixed generation parameters** (those chosen in the evaluation; `pixal3dWorkflow` in `server/schema.mjs`): heun sampler, 25 steps for the coarse shape and 12 steps each for 512/1024, ~700 thousand faces
-(`--faces`), for several views a fixed FOV of 0.1 rad and azimuths 0/90/180/270 (front/left/back/right), for a single view the MoGe-2 camera. The seed comes from the job (1000 in the evaluation).
-There is no quality switch; "Re-extract the surface" is unavailable for Pixal3D (the mesh is final, there is no surface level): a different result comes from a different seed.
+**Generation parameters** (`pixal3dWorkflow` in `server/schema.mjs`): full 1024 uses Heun, 25 steps for the coarse shape and 12 steps each for 512/1024 with about 700 thousand faces by default; draft 512 uses four-step Euler and about 100 thousand faces.
+For several views the FOV is fixed at 0.1 rad and azimuths are 0/90/180/270 (front/left/back/right); a single view uses the MoGe-2 camera. The seed comes from the job (1000 in the evaluation).
+"Re-extract the surface" is unavailable for Pixal3D (the mesh is final, there is no surface level): a different result comes from a different seed.
 
 **Mesh normalisation.** The Pixal3D output is already in the glTF convention (+Y up, front toward +Z), so only a move to the origin and uniform scaling to height 2 are done
 (`server/glb-normalize.mjs`; on the test character it matches vertex for vertex the result of the Python normaliser `normalize_seed_mesh.py`, which tried 24 rotations; the identity rotation won for a single view too).
@@ -102,26 +100,57 @@ Checked on 2026-10-14 through the studio API (`POST /api/jobs` jobs, test charac
 
 The project-owned WSL2 runtime uses ROCm PyTorch and the bounded PyTorch NAF fallback; no NVIDIA NATTEN, CUDA wheels or `nvdiffrast` are required for shape generation, vertex colors or UV base color texturing. `ASTRA_AMD_NAF_ROW_BLOCK` controls the fallback's row block and defaults to `2`; the patch also upgrades existing installations that still contain the former fixed `row_block = 1` without reinstalling dependencies. For single-view texturing, `ASTRA_AMD_NAF_TILE` defaults to `2` and enables the upstream tiled NAF path. Padding is bounded to each row block instead of allocating a full padded copy. The AMD UV branch reuses ComfyUI's existing PyTorch/NumPy UV unwrap, tiled barycentric rasterizer and interpolation helpers instead of CuMesh UV unwrap and nvdiffrast.
 
-Verified on 2026-11-02 with ROCm `7.2.26015-fc0010cf6a`: CPU reference maximum absolute error `2.22e-16`, GPU-versus-CPU maximum absolute error `4.77e-7`. The bounded microbenchmark used kernel 9, four heads, dimension 64 and value dimension 128:
+### Compatibility matrix
+
+| GPU / VRAM | Profile | Views | Texturing | State |
+|---|---|---|---|---|
+| NVIDIA RTX 4070 / 12 GB | full 1024 | single or multi | none (shape only) | verified |
+| AMD RX 9070 XT / 16 GB | draft 512 | single | none | verified |
+| AMD RX 9070 XT / 16 GB | draft 512 | multi | none | verified |
+| AMD RX 9070 XT / 16 GB | full 1024 | single | none | verified |
+| AMD RX 9070 XT / 16 GB | draft 512 | single | `COLOR_0` | verified |
+| AMD RX 9070 XT / 16 GB | draft 512 | single | 512 UV base color | verified |
+| AMD RX 9070 XT / 16 GB | full 1024 | single | `COLOR_0` or UV | unsupported: rejected before job creation |
+| AMD RX 9070 XT / 16 GB | draft 512 | multi | `COLOR_0` or UV | unsupported: single-view only |
+| AMD RX 9070 XT / 16 GB | full 1024 | multi | any | unsupported: rejected before job creation |
+| AMD GPU / 24 GB | full 1024 | multi | any | not verified; currently rejected pending a hardware run |
+
+The API and CLI apply the same compatibility checks. Before any 1024 run, the server reads `/system_stats` and requires at least 11,264 MiB free VRAM on one device. This is the measured additional requirement of the verified single-view run plus a safety margin, not its whole 15.3 GB peak. Low or missing telemetry produces a clear error recommending draft 512 before image upload, GPU locking or prompt submission.
+
+### NAF parity and microbenchmark
+
+Verified on 2026-11-02 with ROCm `7.2.26015-fc0010cf6a`: CPU reference maximum absolute error `2.22e-16`, GPU-versus-CPU maximum absolute error `4.77e-7`. The bounded microbenchmark used kernel 9, four heads, dimension 64 and value dimension 128. Every row block at every shape matched block 1 exactly in this run:
 
 | Shape | Row block | Mean call | Peak allocation | Parity vs block 1 |
 |---|---:|---:|---:|---:|
-| 1×32×32×4×64 | 1 | 8.41 ms | 103,490,048 B | exact |
-| 1×32×32×4×64 | 2 | 5.93 ms | 117,654,528 B | exact |
-| 1×32×32×4×64 | 4 | 4.39 ms | 143,427,584 B | exact |
-| 1×32×32×4×64 | 8 | 12.03 ms | 196,677,632 B | exact |
-| 1×64×64×4×64 | 1 | 22.24 ms | 148,259,840 B | exact |
-| 1×64×64×4×64 | 2 | 16.68 ms | 174,884,864 B | exact |
-| 1×64×64×4×64 | 4 | 46.89 ms | 228,134,912 B | exact |
-| 1×64×64×4×64 | 8 | 47.24 ms | 336,732,160 B | exact |
+| 1×32×32×4×64 | 1 | 8.02 ms | 103,490,048 B | exact |
+| 1×32×32×4×64 | 2 | 5.26 ms | 117,654,528 B | exact |
+| 1×32×32×4×64 | 4 | 4.07 ms | 143,427,584 B | exact |
+| 1×32×32×4×64 | 8 | 11.87 ms | 196,677,632 B | exact |
+| 1×64×64×4×64 | 1 | 21.82 ms | 148,259,840 B | exact |
+| 1×64×64×4×64 | 2 | 16.46 ms | 174,884,864 B | exact |
+| 1×64×64×4×64 | 4 | 47.40 ms | 228,134,912 B | exact |
+| 1×64×64×4×64 | 8 | 47.25 ms | 336,732,160 B | exact |
+| 1×128×128×4×64 | 1 | 66.88 ms | 313,034,752 B | exact |
+| 1×128×128×4×64 | 2 | 190.17 ms | 353,964,032 B | exact |
+| 1×128×128×4×64 | 4 | 187.68 ms | 462,561,280 B | exact |
+| 1×128×128×4×64 | 8 | 454.35 ms | 676,052,992 B | exact |
+| 1×256×256×4×64 | 1 | 773.14 ms | 949,030,912 B | exact |
+| 1×256×256×4×64 | 2 | 761.50 ms | 1,014,112,256 B | exact |
+| 1×256×256×4×64 | 4 | 2,160.56 ms | 1,177,550,848 B | exact |
+| 1×256×256×4×64 | 8 | 3,078.36 ms | 1,602,781,184 B | exact |
 
-Block 2 was selected as the consistent compromise: about 25% faster than block 1 at 64×64 with bounded memory. Draft 512 was also verified end to end: single-view job `de105220-ccbc-4789-a7ca-ae565323e9ff` took 186.3 s with a 10,048.65 MB VRAM peak; four-view job `9bcda0be-ca33-4227-959b-e217544179fd` took 184.0 s with a 10,175.95 MB peak. Both normalized GLB files passed technical mesh validation.
+Block 2 remains the default: it was faster than block 1 at 64×64 and slightly faster at 256×256 with bounded additional memory. It was slower at 128×128 in this run, so the default is not claimed to be universally fastest.
 
-The full single-view 1024/Heun profile then completed successfully with block 2: job `7edaa31c-8155-4d7c-977d-dc5839510761`, 842.0 s, 15,301.30 MB VRAM peak (4,583.57 MB baseline), 697,848 triangles and 349,109 vertices. The 12,564,220-byte normalized GLB passed validation and is saved as `data/runtime/amd-pixal3d-single-standard.glb`. The existing 60-minute deadline was sufficient and remains unchanged. Multi-view 1024 was not run: the single-view peak leaves only about 1 GB of headroom on the 16 GB card.
+### End-to-end runs
 
-Opt-in AMD single-view `COLOR_0` vertex painting was verified with the draft 512 profile: job `4c3eeb6f-3d07-4a21-9baf-2af318f5fe42`, 321.3 s, 14,752.64 MB VRAM peak (3,267.55 MB baseline), 98,615 triangles and 49,865 vertices. The 1,982,160-byte normalized GLB passed validation with `COLOR_0` required and is saved as `data/runtime/amd-pixal3d-single-colors.glb`. Its external four-view render found 2,947 distinct rounded RGB values, all finite. Shape-only generation remains the default; multi-view vertex colors and the standard 1024 vertex-color combination have not been verified.
+Draft 512 was verified end to end: single-view job `de105220-ccbc-4789-a7ca-ae565323e9ff` took 186.3 s with a 10,048.65 MB VRAM peak; four-view job `9bcda0be-ca33-4227-959b-e217544179fd` took 184.0 s with a 10,175.95 MB peak. Both normalized GLB files passed technical mesh validation. The four-view draft can be slightly faster than the single-view draft because the single-view workflow additionally uses MoGe-2 camera estimation.
 
-Opt-in AMD single-view UV base color texturing was also verified with draft 512 geometry, texture latent 1024 and a 512 × 512 atlas: job `bc208684-a3dc-4b7f-9a2d-4a612af740f7`, 389.1 s, 14,731.38 MB VRAM peak (4,450.46 MB baseline), 98,525 triangles and 60,117 vertices after UV vertex splitting. The 2,735,876-byte normalized GLB contains `TEXCOORD_0` and an embedded PNG `baseColorTexture`; strict validation passed before and after normalization. It is saved as `data/runtime/amd-pixal3d-single-uv.glb`. The extracted atlas has 7,181 distinct rounded RGB values, all finite, and the external four-view renderer displayed the actual PBR base color. Use `"uvTexture": true` in `POST /api/jobs`, or `AMD_PIXAL3D_UV_TEXTURE=1 node scripts/verify_amd_pixal3d_e2e.mjs` for the hardware runner. This option requires the AMD WSL single-view workflow and cannot be combined with `vertexColors`.
+The full single-view 1024/Heun profile completed successfully with block 2: job `7edaa31c-8155-4d7c-977d-dc5839510761`, 842.0 s, 15,301.30 MB VRAM peak (4,583.57 MB baseline), 697,848 triangles and 349,109 vertices. The 12,564,220-byte normalized GLB passed validation and is saved as `data/runtime/amd-pixal3d-single-standard.glb`. The existing 60-minute deadline was sufficient and remains unchanged. Multi-view 1024 was deliberately not run on the 16 GB card and is now rejected explicitly; a 24 GB run remains unverified.
+
+Opt-in AMD single-view `COLOR_0` vertex painting was verified with the draft 512 profile: job `4c3eeb6f-3d07-4a21-9baf-2af318f5fe42`, 321.3 s, 14,752.64 MB VRAM peak (3,267.55 MB baseline), 98,615 triangles and 49,865 vertices. The 1,982,160-byte normalized GLB passed validation with `COLOR_0` required and is saved as `data/runtime/amd-pixal3d-single-colors.glb`. Its external four-view render found 2,947 distinct rounded RGB values, all finite. This verifies finite, varied colors, not color fidelity against a reference. Shape-only generation remains the default; multi-view vertex colors and 1024 geometry with vertex colors are rejected as unsupported.
+
+Opt-in AMD single-view UV base color texturing was also verified with draft 512 geometry, texture latent 1024 and a 512 × 512 atlas: job `bc208684-a3dc-4b7f-9a2d-4a612af740f7`, 389.1 s, 14,731.38 MB VRAM peak (4,450.46 MB baseline), 98,525 triangles and 60,117 vertices after UV vertex splitting. The 2,735,876-byte normalized GLB contains `TEXCOORD_0` and an embedded PNG `baseColorTexture`; strict validation passed before and after normalization. It is saved as `data/runtime/amd-pixal3d-single-uv.glb`. The extracted atlas has 7,181 distinct rounded RGB values, all finite, and the external four-view renderer displayed the actual PBR base color. Use `"uvTexture": true` with `"quality": "draft"` in `POST /api/jobs`, or `AMD_PIXAL3D_UV_TEXTURE=1 AMD_PIXAL3D_QUALITY=draft node scripts/verify_amd_pixal3d_e2e.mjs` for the hardware runner. This option requires the AMD WSL single-view draft workflow and cannot be combined with `vertexColors`, multi-view input or 1024 geometry.
 
 ## Licences
 
@@ -132,16 +161,16 @@ Opt-in AMD single-view UV base color texturing was also verified with draft 512 
 
 ## Limitations
 
-- VRAM: draft shape generation needs about 10 GB; the verified full 1024 shape profile peaked at 15.3 GB, draft vertex coloring at 14.8 GB and draft UV texturing at 14.7 GB. If another program holds memory (Blender, a browser with WebGL, a game), the job can end with an "out of video memory" error.
+- VRAM: draft shape generation needs about 10 GB; the verified full 1024 shape profile peaked at 15.3 GB, draft vertex coloring at 14.8 GB and draft UV texturing at 14.7 GB. The 1024 preflight rejects less than 11,264 MiB free, but another program can still allocate memory after the check and cause an out-of-memory error.
 - Progress goes by phases with a timer: the engine itself does not report steps inside phases, so the bar moves in stages (the percentages are an estimate, not exact progress).
 - Cancel interrupts the job at a ComfyUI node boundary: it can take up to a minute for the engine to stop; the next job on the other engine waits for it.
 - One view is worse than four (0.90/0.71/0.87/0.74): the side and back are completed by inference. For a final character use views.
 - Checked on a humanoid in a T-pose (the test character) and on the deterministic RGBA test object used by the AMD hardware runner. Four-legged creatures were not checked.
-- Shape-only output remains the default and uses the existing studio painting steps. AMD vertex colors and UV base color are separate opt-in single-view alternatives. Multi-view UV, a 1024 atlas, standard 1024 geometry with UV, and normal/AO texture generation have not been verified or implemented as verified features.
+- Shape-only output remains the default and uses the existing studio painting steps. AMD vertex colors and UV base color are separate opt-in single-view draft alternatives. Multi-view texturing and 1024 geometry with either texturing mode are explicitly rejected. A 1024 atlas and normal/AO texture generation are not implemented as verified features.
 
 ## Tests
 
-`tests/pixal3d.test.mjs` covers shape-only, AMD `COLOR_0` and AMD UV graphs, mutually exclusive texturing options, required vertex-color or UV/material/embedded-PNG validation before and after GLB normalization, settings and installation lookup, engine start with a fake process, and generation against a fake ComfyUI with a websocket. `tests/amd-pixal3d-e2e.test.mjs` covers the hardware runner options and output naming; `tests/amd-wsl-scripts.test.mjs` guards the bounded NAF, vertex-color and AMD UV unwrap/rasterizer patches. `tests/gpu-handover.test.mjs` covers waiting for a busy engine without interruption, unloading, skipping a non-running one, the lock around the handover, and two jobs on different engines never running together.
+`tests/pixal3d.test.mjs` covers shape-only, AMD `COLOR_0` and AMD UV graphs, request compatibility rejection, 1024 VRAM preflight before upload/GPU acquisition, required vertex-color or UV/material/embedded-PNG validation before and after GLB normalization, settings and installation lookup, engine start with a fake process, and generation against a fake ComfyUI with a websocket. `tests/amd-pixal3d-e2e.test.mjs` covers the hardware runner options, including rejection of multi-view 1024 and 1024 texturing; `tests/amd-wsl-scripts.test.mjs` guards the bounded NAF benchmark through 256×256, vertex-color and AMD UV unwrap/rasterizer patches. `tests/gpu-handover.test.mjs` covers waiting for a busy engine without interruption, unloading, skipping a non-running one, the lock around the handover, and two jobs on different engines never running together.
 
 ## Files
 

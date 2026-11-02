@@ -159,6 +159,42 @@ test('generation schema: engine defaults to hunyuan (old API clients unchanged),
   assert.throws(() => generationSchema.parse({ imageId: ID, engine: 'trellis' }));
 });
 
+const { validatePixal3dRequest, preflightPixal3dVram, PIXAL3D_1024_MIN_FREE_BYTES } = await import('../server/pixal3d.mjs');
+
+test('Pixal3D request validation rejects unsupported texturing before a job is created', () => {
+  const input = { engine: 'pixal3d', quality: 'standard', vertexColors: true, uvTexture: false };
+  assert.throws(() => validatePixal3dRequest(input, { backend: 'wsl' }, { multi: false }),
+    (e) => e.code === 'pixal3d_texturing_requires_draft' && /draft 512/.test(e.message));
+  assert.throws(() => validatePixal3dRequest({ ...input, quality: 'high', vertexColors: false, uvTexture: true }, { backend: 'wsl' }, { multi: false }),
+    (e) => e.code === 'pixal3d_texturing_requires_draft');
+  assert.throws(() => validatePixal3dRequest({ ...input, quality: 'draft' }, { backend: 'wsl' }, { multi: true }),
+    (e) => e.code === 'pixal3d_multiview_texturing_unsupported' && /single-view/.test(e.message));
+  assert.doesNotThrow(() => validatePixal3dRequest({ ...input, quality: 'draft' }, { backend: 'wsl' }, { multi: false }));
+});
+
+test('Pixal3D request validation blocks AMD multi-view 1024 without changing the verified NVIDIA path', () => {
+  const input = { engine: 'pixal3d', quality: 'standard', vertexColors: false, uvTexture: false };
+  for (const quality of ['standard', 'high']) {
+    assert.throws(() => validatePixal3dRequest({ ...input, quality }, { backend: 'wsl' }, { multi: true }),
+      (e) => e.code === 'pixal3d_amd_multiview_1024_unsupported' && /draft 512/.test(e.message) && /16 GB/.test(e.message) && /24 GB/.test(e.message));
+  }
+  assert.doesNotThrow(() => validatePixal3dRequest(input, { backend: 'wsl' }, { multi: false }));
+  assert.doesNotThrow(() => validatePixal3dRequest({ ...input, quality: 'draft' }, { backend: 'wsl' }, { multi: true }));
+  assert.doesNotThrow(() => validatePixal3dRequest(input, { backend: 'windows' }, { multi: true }));
+  assert.doesNotThrow(() => validatePixal3dRequest({ ...input, engine: 'hunyuan' }, { backend: 'wsl' }, { multi: true }));
+});
+
+test('Pixal3D 1024 VRAM preflight requires telemetry and enough free memory, while draft 512 skips it', () => {
+  assert.equal(PIXAL3D_1024_MIN_FREE_BYTES, 11264 * 1024 * 1024);
+  assert.equal(preflightPixal3dVram(null, { quality: 'draft' }), null);
+  assert.throws(() => preflightPixal3dVram({ devices: [] }, { quality: 'standard' }),
+    (e) => e.code === 'pixal3d_vram_unknown' && /draft 512/.test(e.message));
+  assert.throws(() => preflightPixal3dVram({ devices: [{ vram_free: 10000 * 1024 * 1024 }] }, { quality: 'high' }),
+    (e) => e.code === 'pixal3d_vram_insufficient' && e.recommendedQuality === 'draft' && /10000 MiB/.test(e.message) && /11264 MiB/.test(e.message));
+  const stats = { devices: [{ vram_free: 9000 * 1024 * 1024 }, { vram_free: PIXAL3D_1024_MIN_FREE_BYTES }] };
+  assert.equal(preflightPixal3dVram(stats, { quality: 'standard' }).freeBytes, PIXAL3D_1024_MIN_FREE_BYTES);
+});
+
 // ---------- settings and installation ----------
 
 test('settings: ASTRA_PIXAL3D_DIR beats config/paths.json beats the default; the URL must be local', () => {
@@ -458,8 +494,8 @@ test('normalizeGlb gives the same vertices as the evaluated Python normaliser (w
 
 // ---------- a whole generation against a fake ComfyUI ----------
 
-function fakeEngine({ outcome = 'success', pollsBeforeDone = 1, foreign = false, vertexColors = false, uvTexture = false } = {}) {
-  const state = { uploads: [], prompt: null, frees: 0, interrupts: 0, queueDeletes: 0, polls: 0, vramStarted: 0, sockets: [] };
+function fakeEngine({ outcome = 'success', pollsBeforeDone = 1, foreign = false, vertexColors = false, uvTexture = false, freeVramMb = 16384 } = {}) {
+  const state = { uploads: [], prompt: null, frees: 0, interrupts: 0, queueDeletes: 0, polls: 0, vramStarted: 0, statsReads: 0, sockets: [] };
   const glb = uvTexture ? texturedBoxGlb() : vertexColors ? coloredBoxGlb() : boxGlb({ min: [-0.47, -0.5, -0.1], max: [0.47, 0.5, 0.1] });
   const needed = new Set([
     ...Object.values(pixal3dWorkflow({ front: 'f', left: 'l', back: 'b', right: 'r' })).map((n) => n.class_type),
@@ -473,7 +509,10 @@ function fakeEngine({ outcome = 'success', pollsBeforeDone = 1, foreign = false,
     req.on('end', () => {
       const body = Buffer.concat(chunks);
       const json = (v, code = 200) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(v)); };
-      if (url.pathname === '/system_stats') return json({ system: {}, devices: [] });
+      if (url.pathname === '/system_stats') {
+        state.statsReads += 1;
+        return json({ system: {}, devices: freeVramMb === null ? [] : [{ vram_free: freeVramMb * 1024 * 1024 }] });
+      }
       if (url.pathname === '/object_info') return json(Object.fromEntries([...needed].map((c) => [c, {}])));
       if (url.pathname === '/upload/image') {
         const name = /filename="([^"]+)"/.exec(body.toString('latin1'))?.[1] || 'x.png';
@@ -609,6 +648,43 @@ test('generatePixal3d: draft quality reaches the engine with bounded defaults', 
     assert.equal(graph['7'], undefined);
     assert.equal(result.targetFaces, 100000);
     assert.equal(result.quality, 'draft');
+  } finally { await engine.close(); }
+});
+
+test('generatePixal3d: 1024 preflight rejects low or unknown VRAM before upload, GPU lock or prompt', async () => {
+  for (const freeVramMb of [10000, null]) {
+    const engine = await fakeEngine({ freeVramMb });
+    let acquired = 0;
+    try {
+      await assert.rejects(generatePixal3d({
+        images: cutFiles(['front']), quality: 'standard', tag: 'vram', cfg: { url: engine.url, dir: tmp, port: 1, backend: 'wsl' },
+        deps: { start: startOk, acquire: async () => { acquired += 1; return fakeLock(); }, free: async () => {} },
+      }), (e) => e.code === (freeVramMb === null ? 'pixal3d_vram_unknown' : 'pixal3d_vram_insufficient') && /draft 512/.test(e.message));
+      assert.equal(engine.state.statsReads, 1);
+      assert.deepEqual(engine.state.uploads, []);
+      assert.equal(engine.state.prompt, null);
+      assert.equal(engine.state.vramStarted, 0);
+      assert.equal(acquired, 0);
+    } finally { await engine.close(); }
+  }
+});
+
+test('generatePixal3d: draft 512 does not require VRAM telemetry and AMD multi-view 1024 stops before runtime start', async () => {
+  const engine = await fakeEngine({ freeVramMb: null, pollsBeforeDone: 0 });
+  let started = 0, acquired = 0;
+  try {
+    const result = await generatePixal3d({
+      images: cutFiles(['front']), quality: 'draft', tag: 'no-stats', cfg: { url: engine.url, dir: tmp, port: 1, backend: 'wsl' },
+      deps: { start: startOk, acquire: async () => fakeLock(), free: async () => {} },
+    });
+    assert.equal(result.quality, 'draft');
+    assert.equal(engine.state.statsReads, 0);
+    await assert.rejects(generatePixal3d({
+      images: cutFiles(['front', 'back']), quality: 'standard', tag: 'blocked', cfg: { url: engine.url, dir: tmp, port: 1, backend: 'wsl' },
+      deps: { start: async () => { started += 1; return startOk(); }, acquire: async () => { acquired += 1; return fakeLock(); }, free: async () => {} },
+    }), (e) => e.code === 'pixal3d_amd_multiview_1024_unsupported');
+    assert.equal(started, 0);
+    assert.equal(acquired, 0);
   } finally { await engine.close(); }
 });
 

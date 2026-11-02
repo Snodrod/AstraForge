@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { pixal3dWorkflow } from './schema.mjs';
-import { pixal3dConfig, startPixal3dRuntime } from './pixal3d.mjs';
+import { pixal3dConfig, startPixal3dRuntime, validatePixal3dRequest, preflightPixal3dVram } from './pixal3d.mjs';
 import { acquireEngineGpu, freeIfIdle, engineQueue } from './gpu-handover.mjs';
 import { validateGeneratedMesh, maxMeshBytes } from './mesh-validation.mjs';
 import { normalizeGlb } from './glb-normalize.mjs';
@@ -146,10 +146,20 @@ export async function generatePixal3d(o) {
   if (!files.front) throw new Error('Pixal3D requires a front view.');
   const slots = ['front', 'left', 'back', 'right'].filter((s) => files[s]);
   const tag = String(o.tag || randomUUID()).replace(/[^0-9a-zA-Z-]/g, '').slice(0, 24);
+  validatePixal3dRequest({ engine: 'pixal3d', quality, vertexColors: !!o.vertexColors, uvTexture: !!o.uvTexture }, cfg, { multi: slots.length > 1 });
 
   onProgress?.({ percent: 0, message: 'Checking the Pixal3D engine' });
   await (deps.start || startPixal3dRuntime)({ cfg, signal, onProgress: (message) => onProgress?.({ percent: 0, message }) });
   signal?.throwIfAborted();
+  if (quality !== 'draft') {
+    onProgress?.({ percent: 0, message: 'Checking free VRAM for Pixal3D 1024' });
+    let stats;
+    try { stats = await comfyJson(cfg.url + '/system_stats', { signal: AbortSignal.timeout(15000) }); } catch (error) {
+      if (error.name === 'AbortError') throw error;
+      throw Object.assign(new Error('Pixal3D could not read free VRAM for the 1024 profile. Restart the engine or use draft 512.'), { code: 'pixal3d_vram_unknown', recommendedQuality: 'draft' });
+    }
+    preflightPixal3dVram(stats, { quality });
+  }
 
   const workflowFor = (names) => pixal3dWorkflow(names, { seed, prefix: 'astra/px-' + tag, targetFaces, sampler: o.sampler || 'heun', removeBackground: !!o.removeBackground, runtimeBackend: cfg.backend, quality, vertexColors: !!o.vertexColors, uvTexture: !!o.uvTexture });
   const wanted = [...new Set(Object.values(workflowFor(Object.fromEntries(slots.map((s) => [s, s])))).map((n) => n.class_type))];

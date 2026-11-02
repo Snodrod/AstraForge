@@ -30,6 +30,45 @@ export const PIXAL3D_REQUIREMENTS = [
 /** Typical numbers shown in the UI and docs (RTX 4070 12 GB, militia, see docs/forge/pixal3d.md). */
 export const PIXAL3D_ESTIMATE = { multiSeconds: 232, singleSeconds: 355, vramGb: 9.5 };
 
+// The verified AMD single-view 1024 run needed about 10.5 GiB above its baseline. Keep a small safety margin,
+// but do not require the whole 15.3 GB peak to be free: the baseline models are already resident at this point.
+export const PIXAL3D_1024_MIN_FREE_BYTES = 11264 * 1024 * 1024;
+
+function pixal3dRequestError(code, message, details = {}) {
+  return Object.assign(new Error(message), { code, ...details });
+}
+
+/** Reject combinations that are not verified before creating a job or starting the runtime. */
+export function validatePixal3dRequest(input, cfg = pixal3dConfig(), { multi = !!input.viewSetId } = {}) {
+  if (input.engine !== 'pixal3d') return;
+  const texturing = !!(input.vertexColors || input.uvTexture);
+  if (multi && texturing) {
+    throw pixal3dRequestError('pixal3d_multiview_texturing_unsupported', 'Pixal3D vertex colors and UV textures currently require the single-view workflow.');
+  }
+  if (texturing && input.quality !== 'draft') {
+    throw pixal3dRequestError('pixal3d_texturing_requires_draft', 'Pixal3D texturing is verified only with draft 512 geometry. Select draft 512; the 1024 texturing combination is not verified.');
+  }
+  if (multi && cfg.backend === 'wsl' && input.quality !== 'draft') {
+    throw pixal3dRequestError('pixal3d_amd_multiview_1024_unsupported', 'AMD multi-view 1024 is unsupported on the verified 16 GB GPU and not verified on 24 GB GPUs. Use draft 512.');
+  }
+}
+
+/** Check ComfyUI /system_stats before uploads and GPU acquisition for a 1024 run. */
+export function preflightPixal3dVram(stats, { quality = 'standard' } = {}) {
+  if (quality === 'draft') return null;
+  const freeBytes = Math.max(-1, ...(stats?.devices || []).map((device) => Number(device?.vram_free)).filter((bytes) => Number.isFinite(bytes) && bytes >= 0));
+  if (freeBytes < 0) {
+    throw pixal3dRequestError('pixal3d_vram_unknown', 'Pixal3D could not read free VRAM for the 1024 profile. Restart the engine or use draft 512.', { recommendedQuality: 'draft' });
+  }
+  if (freeBytes < PIXAL3D_1024_MIN_FREE_BYTES) {
+    const freeMiB = Math.floor(freeBytes / 1024 / 1024), requiredMiB = PIXAL3D_1024_MIN_FREE_BYTES / 1024 / 1024;
+    throw pixal3dRequestError('pixal3d_vram_insufficient', `Pixal3D 1024 needs at least ${requiredMiB} MiB free VRAM; only ${freeMiB} MiB is available. Close GPU applications or use draft 512.`, {
+      freeBytes, requiredBytes: PIXAL3D_1024_MIN_FREE_BYTES, recommendedQuality: 'draft',
+    });
+  }
+  return { freeBytes, requiredBytes: PIXAL3D_1024_MIN_FREE_BYTES };
+}
+
 function readPathsJson(rootDir) {
   try { return JSON.parse(readFileSync(path.join(rootDir, 'config', 'paths.json'), 'utf8').replace(/^\uFEFF/, '')); } catch { return {}; }
 }
@@ -99,7 +138,7 @@ export async function pixal3dStatus({ cfg = pixal3dConfig(), fetchFn = fetch, ex
   const state = pixal3dInstallState(cfg, exists);
   const running = state.installed ? await probe(cfg.url, 1200, fetchFn) : false;
   return {
-    installed: state.installed, running, url: cfg.url, dir: cfg.dir, missing: state.missing, message: state.message,
+    installed: state.installed, running, url: cfg.url, dir: cfg.dir, backend: cfg.backend, missing: state.missing, message: state.message,
     startedByStudio: !!child && !child.killed, estimate: PIXAL3D_ESTIMATE,
   };
 }

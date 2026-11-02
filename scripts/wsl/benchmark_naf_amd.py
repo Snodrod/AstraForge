@@ -14,7 +14,7 @@ def main():
     from src.layers.attentions import na2d
 
     records = []
-    for height, width in [(32, 32), (64, 64)]:
+    for height, width in [(32, 32), (64, 64), (128, 128), (256, 256)]:
         torch.manual_seed(4200 + height)
         q = torch.randn(1, height, width, 4, 64, device='cuda')
         k = torch.randn_like(q)

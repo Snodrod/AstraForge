@@ -44,8 +44,8 @@ The "Create" tab, the **"Views"** block under "Concept image":
 3. You can drag your own file into any slot or click the upload icon. Hovering over a finished slot offers: replace, recreate, remove.
 4. Above the button is the **"3D engine"** switch: **Pixal3D** (more accurate and crisper, about 4 minutes, ~10 GB VRAM; the default if installed) or **Hunyuan3D-2mv**
    (faster, softer shape). Details and numbers — `docs/forge/pixal3d.md`.
-5. **"Create 3D from views"**: an ordinary generation job (queue, cancel, "Results" history), quality and seed come from the "Geometry quality" block below
-   (Pixal3D has no quality switch). If there is only one view (just the front), the button is inactive: for one view there is the ordinary button.
+5. **"Create 3D from views"**: an ordinary generation job (queue, cancel, "Results" history), quality and seed come from the "Geometry quality" block below.
+   Pixal3D offers draft 512 and full 1024; AMD multi-view 1024 is blocked with a draft 512 alternative. If there is only one view (just the front), the button is inactive: for one view there is the ordinary button.
 
 The result is loaded into the scene as after an ordinary generation. In "Results" such a model is labelled "Model from views (N views)" (for Pixal3D prefixed "Pixal3D ·"),
 "Re-extract the surface" works for Hunyuan3D (the sample is taken from the engine cache: a repeat took 3 s); Pixal3D has no such button.

@@ -256,6 +256,7 @@ test('NAF verification covers odd shapes and bounded benchmark memory', () => {
   assert.match(benchmark, /max_memory_allocated/);
   assert.match(benchmark, /ASTRA_AMD_NAF_ROW_BLOCK/);
   assert.match(benchmark, /\[1, 2, 4, 8\]/);
+  assert.match(benchmark, /\[\(32, 32\), \(64, 64\), \(128, 128\), \(256, 256\)\]/);
 });
 
 test('AMD UV texturing replaces CuMesh unwrap and CUDA rasterization', async () => {

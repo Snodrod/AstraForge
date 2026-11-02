@@ -6,11 +6,12 @@ test('Pixal3D E2E defaults to a resumable single-view run', () => {
   assert.deepEqual(parseOptions({}), { views: 'single', jobId: null, quality: 'draft', vertexColors: false, uvTexture: false });
 });
 
-test('Pixal3D E2E enables vertex colors only for explicit opt-in', () => {
-  assert.deepEqual(parseOptions({ AMD_PIXAL3D_VERTEX_COLORS: '1', AMD_PIXAL3D_QUALITY: 'standard' }), {
-    views: 'single', jobId: null, quality: 'standard', vertexColors: true, uvTexture: false,
+test('Pixal3D E2E enables vertex colors only for the verified single-view draft profile', () => {
+  assert.deepEqual(parseOptions({ AMD_PIXAL3D_VERTEX_COLORS: '1' }), {
+    views: 'single', jobId: null, quality: 'draft', vertexColors: true, uvTexture: false,
   });
   assert.throws(() => parseOptions({ AMD_PIXAL3D_VIEWS: 'multi', AMD_PIXAL3D_VERTEX_COLORS: '1' }), /single-view/);
+  assert.throws(() => parseOptions({ AMD_PIXAL3D_VERTEX_COLORS: '1', AMD_PIXAL3D_QUALITY: 'standard' }), /draft 512/);
 });
 
 test('Pixal3D E2E enables UV textures only for AMD single-view runs', () => {
@@ -26,8 +27,9 @@ test('Pixal3D E2E selects the full 1024 profile explicitly', () => {
   assert.throws(() => parseOptions({ AMD_PIXAL3D_QUALITY: 'unknown' }), /AMD_PIXAL3D_QUALITY/);
 });
 
-test('Pixal3D E2E accepts the existing multi-view workflow', () => {
+test('Pixal3D E2E accepts multi-view draft 512 and blocks unverified multi-view 1024', () => {
   assert.equal(parseOptions({ AMD_PIXAL3D_VIEWS: 'multi' }).views, 'multi');
+  assert.throws(() => parseOptions({ AMD_PIXAL3D_VIEWS: 'multi', AMD_PIXAL3D_QUALITY: 'standard' }), /draft 512/);
 });
 
 test('Pixal3D E2E rejects an unknown view mode', () => {

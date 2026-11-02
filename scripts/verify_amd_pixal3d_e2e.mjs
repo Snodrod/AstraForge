@@ -17,6 +17,8 @@ export function parseOptions(env = process.env) {
   if (vertexColors && views !== 'single') throw new Error('AMD Pixal3D vertex colors require the single-view workflow.');
   if (uvTexture && vertexColors) throw new Error('AMD Pixal3D UV texture and vertex colors cannot be combined.');
   if (uvTexture && views !== 'single') throw new Error('AMD Pixal3D UV texture requires the single-view workflow.');
+  if ((vertexColors || uvTexture) && quality !== 'draft') throw new Error('AMD Pixal3D texturing is verified only with draft 512 geometry.');
+  if (views === 'multi' && quality !== 'draft') throw new Error('AMD Pixal3D multi-view 1024 is unsupported on 16 GB and not verified on 24 GB. Use draft 512.');
   return { views, jobId: env.AMD_PIXAL3D_JOB_ID || null, quality, vertexColors, uvTexture };
 }
 
