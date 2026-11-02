@@ -182,7 +182,8 @@ except ImportError:
         k = F.pad(k, (pad_w, pad_w, pad_h, pad_h))
         v = F.pad(v, (pad_w, pad_w, pad_h, pad_h))
         outputs = []
-        row_block = 1
+        import os
+        row_block = max(1, min(height, int(os.environ.get('ASTRA_AMD_NAF_ROW_BLOCK', '4'))))
         for start in range(0, height, row_block):
             rows = min(row_block, height - start)
             band_height = rows + (kh - 1) * dh

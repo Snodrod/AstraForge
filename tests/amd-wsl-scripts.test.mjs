@@ -137,7 +137,9 @@ test('NAF uses a bounded PyTorch attention fallback without NATTEN', async () =>
   const patched = readFileSync(attentions, 'utf8');
   assert.match(patched, /except ImportError:/);
   assert.match(patched, /def na2d\(/);
-  assert.match(patched, /row_block = 1/);
+  assert.match(patched, /ASTRA_AMD_NAF_ROW_BLOCK/);
+  assert.match(patched, /row_block = max\(1, min\(height,/);
+  assert.doesNotMatch(patched, /row_block = 1\s/);
   assert.match(patched, /torch\.einsum/);
   assert.doesNotMatch(patched, /except:\r?\n/);
   assert.match(readFileSync(hubconf, 'utf8'), /dependencies = \["torch"\]/);
