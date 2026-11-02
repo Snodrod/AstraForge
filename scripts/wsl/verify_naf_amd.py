@@ -33,7 +33,7 @@ def main():
     from src.layers.attentions import na2d
 
     worst = 0.0
-    for shape, dilation in [((3, 3), (1, 1)), ((4, 4), (2, 2))]:
+    for shape, dilation in [((3, 3), (1, 1)), ((4, 4), (2, 2)), ((5, 7), (1, 1))]:
         torch.manual_seed(42)
         q = torch.randn(1, *shape, 2, 4, dtype=torch.float64)
         k = torch.randn_like(q)

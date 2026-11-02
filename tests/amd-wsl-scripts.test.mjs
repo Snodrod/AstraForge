@@ -144,3 +144,12 @@ test('NAF uses a bounded PyTorch attention fallback without NATTEN', async () =>
   assert.doesNotMatch(patched, /except:\r?\n/);
   assert.match(readFileSync(hubconf, 'utf8'), /dependencies = \["torch"\]/);
 });
+
+test('NAF verification covers odd shapes and bounded benchmark memory', () => {
+  const verify = read('scripts/wsl/verify_naf_amd.py');
+  assert.match(verify, /\(\(5, 7\), \(1, 1\)\)/);
+  const benchmark = read('scripts/wsl/benchmark_naf_amd.py');
+  assert.match(benchmark, /max_memory_allocated/);
+  assert.match(benchmark, /ASTRA_AMD_NAF_ROW_BLOCK/);
+  assert.match(benchmark, /\[1, 2, 4, 8\]/);
+});
