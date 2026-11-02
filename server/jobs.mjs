@@ -86,14 +86,14 @@ async function runPixal3d(j,config,signal){
   const info=await assetInfo(prepared.reference.id);images={front:path.join(data,'assets',info.id+info.extension)};
   removeBackground=String(j.backgroundMode||'').startsWith('keep');
  }
- const result=await generatePixal3d({images,seed:j.seed,quality:j.quality,vertexColors:!!j.vertexColors,tag:j.id.slice(0,8),signal,removeBackground,cfg,
+ const result=await generatePixal3d({images,seed:j.seed,quality:j.quality,vertexColors:!!j.vertexColors,uvTexture:!!j.uvTexture,tag:j.id.slice(0,8),signal,removeBackground,cfg,
   onProgress:({percent,message})=>{if(j.status==='running')void update(j,{progress:percent,message}).catch(()=>{});},
   onPrompt:promptId=>void update(j,{promptId}).catch(()=>{}),
   onWait:message=>{if(j.status==='running')void update(j,{message}).catch(()=>{});}});
  signal.throwIfAborted();
  const asset=await saveAsset(result.buffer,'.glb',j.viewSetId?'Pixal3D · from views':'Pixal3D · '+(j.prompt||'from image').slice(0,50));
- const validation=validateGeneratedMesh(result.buffer,{requireVertexColors:!!j.vertexColors});
- await update(j,{status:'completed',progress:100,message:'Geometry created · Pixal3D · needs review',asset,validation,pixal3d:{seconds:result.seconds,slots:result.slots,targetFaces:result.targetFaces,vertexColors:result.vertexColors,vramPeakMb:result.vram?.peak_used_mb??null,vramBaselineMb:result.vram?.baseline_used_mb??null,scale:result.normalization.scale,handover:result.handover}});
+ const validation=validateGeneratedMesh(result.buffer,{requireVertexColors:!!j.vertexColors,requireUvTexture:!!j.uvTexture});
+ await update(j,{status:'completed',progress:100,message:'Geometry created · Pixal3D · needs review',asset,validation,pixal3d:{seconds:result.seconds,slots:result.slots,targetFaces:result.targetFaces,vertexColors:result.vertexColors,uvTexture:result.uvTexture,vramPeakMb:result.vram?.peak_used_mb??null,vramBaselineMb:result.vram?.baseline_used_mb??null,scale:result.normalization.scale,handover:result.handover}});
 }
 async function run(j,config,signal){
  if(j.engine==='pixal3d')return runPixal3d(j,config,signal);

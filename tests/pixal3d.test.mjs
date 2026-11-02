@@ -126,6 +126,18 @@ test('pixal3dWorkflow: opt-in single-view vertex coloring has no CUDA UV or rast
   assert.deepEqual(classes(w).filter((c) => forbidden.test(c)), []);
 });
 
+test('pixal3dWorkflow: AMD single-view UV texturing exports a 512 base color atlas', () => {
+  const w = pixal3dWorkflow({ front: 'f.png' }, { uvTexture: true, runtimeBackend: 'wsl' });
+  assert.equal(w['40'].class_type, 'Trellis2MeshTexturingPixal3DMultiView');
+  assert.equal(w['40'].inputs.bake_on_vertices, false);
+  assert.equal(w['40'].inputs.texture_size, 512);
+  assert.deepEqual(w['27'].inputs.trimesh, ['40', 0]);
+  assert.throws(() => pixal3dWorkflow({ front: 'f', back: 'b' }, { uvTexture: true, runtimeBackend: 'wsl' }), /single-view/);
+  assert.throws(() => pixal3dWorkflow({ front: 'f' }, { uvTexture: true }), /AMD|WSL/);
+  assert.throws(() => pixal3dWorkflow({ front: 'f' }, { uvTexture: true, vertexColors: true, runtimeBackend: 'wsl' }), /mutually exclusive|cannot be combined/);
+  assert.equal(pixal3dWorkflow({ front: 'f' })['40'], undefined);
+});
+
 test('pixal3dWorkflow reproduces the graphs that were evaluated on the militia (when the evaluation files exist)', { skip: !existsSync('C:/AstraForge/incoming/units_1013/militia/pixal3d/pixal3d_mv.api.json') }, () => {
   // the evaluated graphs used meshlib for the second hole fill; it is replaced by CuMesh (MIT) — meshlib is non-commercial only
   const noMeshlib = (g) => { if (g['24']?.class_type === 'Trellis2FillHolesNicelyWithMeshlib') g['24'] = { class_type: 'Trellis2FillHolesWithCuMesh', inputs: { mesh: ['23', 0], max_permieters: 1 } }; return g; };
@@ -142,6 +154,8 @@ test('generation schema: engine defaults to hunyuan (old API clients unchanged),
   assert.equal(generationSchema.parse({ viewSetId: ID, engine: 'auto' }).engine, 'auto');
   assert.equal(generationSchema.parse({ imageId: ID }).vertexColors, false);
   assert.equal(generationSchema.parse({ imageId: ID, vertexColors: true }).vertexColors, true);
+  assert.equal(generationSchema.parse({ imageId: ID }).uvTexture, false);
+  assert.equal(generationSchema.parse({ imageId: ID, uvTexture: true }).uvTexture, true);
   assert.throws(() => generationSchema.parse({ imageId: ID, engine: 'trellis' }));
 });
 
@@ -348,6 +362,31 @@ function coloredBoxGlb({ count = 8, componentType = 5126, type = 'VEC4' } = {}) 
   return buildGlb(json, Buffer.concat([bin, colors]));
 }
 
+function texturedBoxGlb({ png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), Buffer.alloc(32, 3)]) } = {}) {
+  const { json, bin } = parseGlb(boxGlb());
+  const uvs = Buffer.alloc(8 * 8);
+  for (let i = 0; i < 8; i += 1) {
+    uvs.writeFloatLE(i & 1, i * 8);
+    uvs.writeFloatLE((i >> 1) & 1, i * 8 + 4);
+  }
+  const uvAccessor = json.accessors.length;
+  const uvView = json.bufferViews.length;
+  const imageView = uvView + 1;
+  const primitive = json.meshes[0].primitives[0];
+  primitive.attributes.TEXCOORD_0 = uvAccessor;
+  primitive.material = 0;
+  json.accessors.push({ bufferView: uvView, componentType: 5126, count: 8, type: 'VEC2' });
+  json.bufferViews.push(
+    { buffer: 0, byteOffset: bin.length, byteLength: uvs.length },
+    { buffer: 0, byteOffset: bin.length + uvs.length, byteLength: png.length },
+  );
+  json.images = [{ bufferView: imageView, mimeType: 'image/png' }];
+  json.textures = [{ source: 0 }];
+  json.materials = [{ pbrMetallicRoughness: { baseColorTexture: { index: 0 } } }];
+  json.buffers[0].byteLength += uvs.length + png.length;
+  return buildGlb(json, Buffer.concat([bin, uvs, png]));
+}
+
 test('GLB validation: COLOR_0 is required only for the opt-in vertex color mode', () => {
   assert.throws(() => validateGeneratedMesh(boxGlb(), { requireVertexColors: true }), /COLOR_0/);
   assert.throws(() => validateGeneratedMesh(coloredBoxGlb({ count: 7 }), { requireVertexColors: true }), /COLOR_0/);
@@ -355,6 +394,15 @@ test('GLB validation: COLOR_0 is required only for the opt-in vertex color mode'
   const colored = coloredBoxGlb();
   assert.equal(validateGeneratedMesh(colored, { requireVertexColors: true }).vertexColors, true);
   assert.equal(validateGeneratedMesh(normalizeGlb(colored).buffer, { requireVertexColors: true }).vertexColors, true);
+  assert.equal(validateGeneratedMesh(boxGlb()).accepted, true);
+});
+
+test('GLB validation: UV mode requires TEXCOORD_0 and an embedded base color PNG', () => {
+  const textured = texturedBoxGlb();
+  assert.equal(validateGeneratedMesh(textured, { requireUvTexture: true }).uvTexture, true);
+  assert.equal(validateGeneratedMesh(normalizeGlb(textured).buffer, { requireUvTexture: true }).uvTexture, true);
+  assert.throws(() => validateGeneratedMesh(boxGlb(), { requireUvTexture: true }), /TEXCOORD_0|baseColorTexture/);
+  assert.throws(() => validateGeneratedMesh(texturedBoxGlb({ png: Buffer.from('broken') }), { requireUvTexture: true }), /PNG/);
   assert.equal(validateGeneratedMesh(boxGlb()).accepted, true);
 });
 
@@ -410,12 +458,13 @@ test('normalizeGlb gives the same vertices as the evaluated Python normaliser (w
 
 // ---------- a whole generation against a fake ComfyUI ----------
 
-function fakeEngine({ outcome = 'success', pollsBeforeDone = 1, foreign = false, vertexColors = false } = {}) {
+function fakeEngine({ outcome = 'success', pollsBeforeDone = 1, foreign = false, vertexColors = false, uvTexture = false } = {}) {
   const state = { uploads: [], prompt: null, frees: 0, interrupts: 0, queueDeletes: 0, polls: 0, vramStarted: 0, sockets: [] };
-  const glb = vertexColors ? coloredBoxGlb() : boxGlb({ min: [-0.47, -0.5, -0.1], max: [0.47, 0.5, 0.1] });
+  const glb = uvTexture ? texturedBoxGlb() : vertexColors ? coloredBoxGlb() : boxGlb({ min: [-0.47, -0.5, -0.1], max: [0.47, 0.5, 0.1] });
   const needed = new Set([
     ...Object.values(pixal3dWorkflow({ front: 'f', left: 'l', back: 'b', right: 'r' })).map((n) => n.class_type),
     ...Object.values(pixal3dWorkflow({ front: 'f' }, { vertexColors: true })).map((n) => n.class_type),
+    ...Object.values(pixal3dWorkflow({ front: 'f' }, { uvTexture: true, runtimeBackend: 'wsl' })).map((n) => n.class_type),
   ]);
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://x');
@@ -573,6 +622,19 @@ test('generatePixal3d: opt-in coloring requires COLOR_0 before and after normali
     assert.equal(engine.state.prompt.prompt['40'].inputs.bake_on_vertices, true);
     assert.equal(result.vertexColors, true);
     assert.equal(validateGeneratedMesh(result.buffer, { requireVertexColors: true }).vertexColors, true);
+  } finally { await engine.close(); }
+});
+
+test('generatePixal3d: UV mode validates its base color PNG before and after normalization', async () => {
+  const engine = await fakeEngine({ pollsBeforeDone: 0, uvTexture: true });
+  try {
+    const result = await generatePixal3d({
+      images: cutFiles(['front']), quality: 'draft', uvTexture: true, tag: 'uv', cfg: { url: engine.url, dir: tmp, port: 1, backend: 'wsl' },
+      deps: { start: startOk, acquire: async () => fakeLock(), free: async () => {} },
+    });
+    assert.equal(engine.state.prompt.prompt['40'].inputs.bake_on_vertices, false);
+    assert.equal(result.uvTexture, true);
+    assert.equal(validateGeneratedMesh(result.buffer, { requireUvTexture: true }).uvTexture, true);
   } finally { await engine.close(); }
 });
 
