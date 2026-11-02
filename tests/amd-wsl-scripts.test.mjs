@@ -4,6 +4,54 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
+const upstreamUvPipeline = [
+  'from comfy.utils import ProgressBar',
+  "        if hasattr(mesh, 'visual') and hasattr(mesh.visual, 'uv') and mesh.visual.uv is not None:",
+  '            uvs = mesh.visual.uv.copy()',
+  '        else:',
+  '            _cumesh = cumesh.CuMesh()',
+  '            _cumesh.init(vertices_torch, faces_torch)',
+  "            print('Unwrapping mesh ...')",
+  '            vertices_torch, faces_torch, uvs_torch, vmap = _cumesh.uv_unwrap(',
+  '                compute_charts_kwargs={',
+  '                    "threshold_cone_half_angle_rad": np.radians(mesh_cluster_threshold_cone_half_angle_rad),',
+  '                    "refine_iterations": 0,',
+  '                    "global_iterations": 1,',
+  '                    "smooth_strength": 1,',
+  '                },',
+  '                return_vmaps=True,',
+  '                verbose=True,',
+  '            )',
+  '            ',
+  '            del _cumesh',
+  '            gc.collect()      ',
+  '            ',
+  '            vertices_torch = vertices_torch.cuda()',
+  '            faces_torch = faces_torch.cuda()',
+  '            uvs_torch = uvs_torch.cuda()',
+  '            vertices = vertices_torch.cpu().numpy()',
+  '            faces = faces_torch.cpu().numpy()',
+  '            uvs = uvs_torch.cpu().numpy()',
+  '            normals = normals[vmap.cpu().numpy()]',
+  '        if bake_on_vertices:',
+  '            pass',
+  "        print('Finalizing mesh ...')",
+  '        ctx = dr.RasterizeCudaContext()',
+  '        uvs_torch = torch.cat([uvs_torch * 2 - 1, torch.zeros_like(uvs_torch[:, :1]), torch.ones_like(uvs_torch[:, :1])], dim=-1).unsqueeze(0)',
+  '        rast, _ = dr.rasterize(',
+  '            ctx, uvs_torch, faces_torch,',
+  '            resolution=[texture_size, texture_size],',
+  '        )',
+  '        ',
+  '        torch.cuda.synchronize()',
+  '        ',
+  '        mask = rast[0, ..., 3] > 0',
+  '        pos = dr.interpolate(vertices_torch.unsqueeze(0), rast, faces_torch)[0][0]',
+  '            image_cond_model = self.load_pixal3d_image_cond_tex_1024()',
+  '            cond = self.get_proj_cond_shape(',
+  '',
+].join('\n');
+
 test('AMD WSL scripts exclude CUDA wheels and verify the GPU', () => {
   const install = read('scripts/wsl/install-pixal3d-amd.sh');
   assert.doesNotMatch(install, /download\.pytorch\.org\/whl\/cu|flash_attn-.*win_amd64/);
@@ -114,15 +162,7 @@ test('AMD vertex colors skip the CUDA UV unwrap branch', async () => {
   const pipelineDir = join(root, 'trellis2', 'pipelines');
   mkdirSync(pipelineDir, { recursive: true });
   const pipeline = join(pipelineDir, 'trellis2_image_to_3d.py');
-  writeFileSync(pipeline, [
-    "        if hasattr(mesh, 'visual') and hasattr(mesh.visual, 'uv') and mesh.visual.uv is not None:",
-    '            uvs = mesh.visual.uv.copy()',
-    '        else:',
-    '            _cumesh = cumesh.CuMesh()',
-    '            image_cond_model = self.load_pixal3d_image_cond_tex_1024()',
-    '            cond = self.get_proj_cond_shape(',
-    '',
-  ].join('\n'));
+  writeFileSync(pipeline, upstreamUvPipeline);
   const patch = fileURLToPath(new URL('../scripts/wsl/patch_trellis2_amd.py', import.meta.url));
   const result = spawnSync('python', ['-c', [
     'import importlib.util, sys',
@@ -216,4 +256,34 @@ test('NAF verification covers odd shapes and bounded benchmark memory', () => {
   assert.match(benchmark, /max_memory_allocated/);
   assert.match(benchmark, /ASTRA_AMD_NAF_ROW_BLOCK/);
   assert.match(benchmark, /\[1, 2, 4, 8\]/);
+});
+
+test('AMD UV texturing replaces CuMesh unwrap and CUDA rasterization', async () => {
+  const { mkdtempSync, mkdirSync, writeFileSync, readFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { spawnSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const root = mkdtempSync(join(tmpdir(), 'astraforge-uv-texture-'));
+  const pipelineDir = join(root, 'trellis2', 'pipelines');
+  mkdirSync(pipelineDir, { recursive: true });
+  const pipeline = join(pipelineDir, 'trellis2_image_to_3d.py');
+  writeFileSync(pipeline, upstreamUvPipeline);
+  const patch = fileURLToPath(new URL('../scripts/wsl/patch_trellis2_amd.py', import.meta.url));
+  const result = spawnSync('python', ['-c', [
+    'import importlib.util, sys',
+    'spec = importlib.util.spec_from_file_location("patch", sys.argv[1])',
+    'module = importlib.util.module_from_spec(spec)',
+    'spec.loader.exec_module(module)',
+    'module.patch_vertex_colors(__import__("pathlib").Path(sys.argv[2]))',
+  ].join(';'), patch, root], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const patched = readFileSync(pipeline, 'utf8');
+  assert.match(patched, /from comfy_extras\.nodes_mesh_postprocess import _uv_unwrap, _rasterize_uv_barycentric, _interp_vertex_attr/);
+  assert.match(patched, /_uv_unwrap\(\s*vertices_torch\.cpu\(\), faces_torch\.cpu\(\)\.long\(\),\s*'adaptive', 1024, 2, 0\.0\)/);
+  assert.match(patched, /_rasterize_uv_barycentric\(faces, uvs, texture_size\)/);
+  assert.match(patched, /_interp_vertex_attr\(vertices_torch, faces_torch\.long\(\), face_idx, bary, mask\)/);
+  assert.match(patched, /AMD UV rasterization produced an empty texture/);
+  assert.match(patched, /ctx = dr\.RasterizeCudaContext\(\)/);
+  assert.match(patched, /if bake_on_vertices:/);
 });

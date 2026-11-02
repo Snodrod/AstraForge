@@ -154,6 +154,12 @@ def patch_vertex_colors(node):
     text = path.read_text(encoding='utf-8')
     text = replace_once(
         text,
+        'from comfy.utils import ProgressBar\n',
+        'from comfy.utils import ProgressBar\nfrom comfy_extras.nodes_mesh_postprocess import _uv_unwrap, _rasterize_uv_barycentric, _interp_vertex_attr\n',
+        'AMD UV helpers',
+    )
+    text = replace_once(
+        text,
         "        if hasattr(mesh, 'visual') and hasattr(mesh.visual, 'uv') and mesh.visual.uv is not None:\n",
         "        if not bake_on_vertices and hasattr(mesh, 'visual') and hasattr(mesh.visual, 'uv') and mesh.visual.uv is not None:\n",
         'vertex color UV guard',
@@ -163,6 +169,104 @@ def patch_vertex_colors(node):
         '        else:\n            _cumesh = cumesh.CuMesh()\n',
         '        elif not bake_on_vertices:\n            _cumesh = cumesh.CuMesh()\n',
         'vertex color unwrap skip',
+    )
+    text = replace_once(
+        text,
+        (
+            '        elif not bake_on_vertices:\n'
+            '            _cumesh = cumesh.CuMesh()\n'
+            '            _cumesh.init(vertices_torch, faces_torch)\n'
+            "            print('Unwrapping mesh ...')\n"
+            '            vertices_torch, faces_torch, uvs_torch, vmap = _cumesh.uv_unwrap(\n'
+            '                compute_charts_kwargs={\n'
+            '                    "threshold_cone_half_angle_rad": np.radians(mesh_cluster_threshold_cone_half_angle_rad),\n'
+            '                    "refine_iterations": 0,\n'
+            '                    "global_iterations": 1,\n'
+            '                    "smooth_strength": 1,\n'
+            '                },\n'
+            '                return_vmaps=True,\n'
+            '                verbose=True,\n'
+            '            )\n'
+            '            \n'
+            '            del _cumesh\n'
+            '            gc.collect()      \n'
+            '            \n'
+            '            vertices_torch = vertices_torch.cuda()\n'
+            '            faces_torch = faces_torch.cuda()\n'
+            '            uvs_torch = uvs_torch.cuda()\n'
+            '            vertices = vertices_torch.cpu().numpy()\n'
+            '            faces = faces_torch.cpu().numpy()\n'
+            '            uvs = uvs_torch.cpu().numpy()\n'
+            '            normals = normals[vmap.cpu().numpy()]\n'
+        ),
+        """        elif not bake_on_vertices:
+            if os.environ.get('ASTRA_AMD_ROCM') == '1':
+                vmapping, faces, uvs = _uv_unwrap(
+                    vertices_torch.cpu(), faces_torch.cpu().long(),
+                    'adaptive', 1024, 2, 0.0)
+                vertices = vertices[vmapping]
+                normals = normals[vmapping]
+                vertices_torch = torch.from_numpy(vertices).float().cuda()
+                faces_torch = torch.from_numpy(faces).int().cuda()
+                uvs_torch = torch.from_numpy(uvs).float().cuda()
+            else:
+                _cumesh = cumesh.CuMesh()
+                _cumesh.init(vertices_torch, faces_torch)
+                print('Unwrapping mesh ...')
+                vertices_torch, faces_torch, uvs_torch, vmap = _cumesh.uv_unwrap(
+                    compute_charts_kwargs={
+                        'threshold_cone_half_angle_rad': np.radians(mesh_cluster_threshold_cone_half_angle_rad),
+                        'refine_iterations': 0,
+                        'global_iterations': 1,
+                        'smooth_strength': 1,
+                    },
+                    return_vmaps=True,
+                    verbose=True,
+                )
+                del _cumesh
+                gc.collect()
+                vertices_torch = vertices_torch.cuda()
+                faces_torch = faces_torch.cuda()
+                uvs_torch = uvs_torch.cuda()
+                vertices = vertices_torch.cpu().numpy()
+                faces = faces_torch.cpu().numpy()
+                uvs = uvs_torch.cpu().numpy()
+                normals = normals[vmap.cpu().numpy()]
+""",
+        'AMD UV unwrap',
+    )
+    text = replace_once(
+        text,
+        (
+            '        ctx = dr.RasterizeCudaContext()\n'
+            '        uvs_torch = torch.cat([uvs_torch * 2 - 1, torch.zeros_like(uvs_torch[:, :1]), torch.ones_like(uvs_torch[:, :1])], dim=-1).unsqueeze(0)\n'
+            '        rast, _ = dr.rasterize(\n'
+            '            ctx, uvs_torch, faces_torch,\n'
+            '            resolution=[texture_size, texture_size],\n'
+            '        )\n'
+            '        \n'
+            '        torch.cuda.synchronize()\n'
+            '        \n'
+            '        mask = rast[0, ..., 3] > 0\n'
+            '        pos = dr.interpolate(vertices_torch.unsqueeze(0), rast, faces_torch)[0][0]\n'
+        ),
+        """        if os.environ.get('ASTRA_AMD_ROCM') == '1':
+            face_idx, bary, mask = _rasterize_uv_barycentric(faces, uvs, texture_size)
+            if not mask.any():
+                raise RuntimeError('AMD UV rasterization produced an empty texture')
+            pos = _interp_vertex_attr(vertices_torch, faces_torch.long(), face_idx, bary, mask)
+        else:
+            ctx = dr.RasterizeCudaContext()
+            uvs_torch = torch.cat([uvs_torch * 2 - 1, torch.zeros_like(uvs_torch[:, :1]), torch.ones_like(uvs_torch[:, :1])], dim=-1).unsqueeze(0)
+            rast, _ = dr.rasterize(
+                ctx, uvs_torch, faces_torch,
+                resolution=[texture_size, texture_size],
+            )
+            torch.cuda.synchronize()
+            mask = rast[0, ..., 3] > 0
+            pos = dr.interpolate(vertices_torch.unsqueeze(0), rast, faces_torch)[0][0]
+""",
+        'AMD UV rasterizer',
     )
     text = replace_once(
         text,
