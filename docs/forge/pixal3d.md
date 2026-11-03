@@ -1,6 +1,6 @@
 # Pixal3D: the second 3D engine (more accurate than Hunyuan3D)
 
-State as of 2026-11-02. Relates to `docs/forge/views.md` (views) and `docs/forge/API.md`.
+State as of 2026-11-03. Relates to `docs/forge/views.md` (views) and `docs/forge/API.md`.
 
 ## What it is and why
 
@@ -151,6 +151,16 @@ The full single-view 1024/Heun profile completed successfully with block 2: job 
 Opt-in AMD single-view `COLOR_0` vertex painting was verified with the draft 512 profile: job `4c3eeb6f-3d07-4a21-9baf-2af318f5fe42`, 321.3 s, 14,752.64 MB VRAM peak (3,267.55 MB baseline), 98,615 triangles and 49,865 vertices. The 1,982,160-byte normalized GLB passed validation with `COLOR_0` required and is saved as `data/runtime/amd-pixal3d-single-colors.glb`. Its external four-view render found 2,947 distinct rounded RGB values, all finite. This verifies finite, varied colors, not color fidelity against a reference. Shape-only generation remains the default; multi-view vertex colors and 1024 geometry with vertex colors are rejected as unsupported.
 
 Opt-in AMD single-view UV base color texturing was also verified with draft 512 geometry, texture latent 1024 and a 512 × 512 atlas: job `bc208684-a3dc-4b7f-9a2d-4a612af740f7`, 389.1 s, 14,731.38 MB VRAM peak (4,450.46 MB baseline), 98,525 triangles and 60,117 vertices after UV vertex splitting. The 2,735,876-byte normalized GLB contains `TEXCOORD_0` and an embedded PNG `baseColorTexture`; strict validation passed before and after normalization. It is saved as `data/runtime/amd-pixal3d-single-uv.glb`. The extracted atlas has 7,181 distinct rounded RGB values, all finite, and the external four-view renderer displayed the actual PBR base color. Use `"uvTexture": true` with `"quality": "draft"` in `POST /api/jobs`, or `AMD_PIXAL3D_UV_TEXTURE=1 AMD_PIXAL3D_QUALITY=draft node scripts/verify_amd_pixal3d_e2e.mjs` for the hardware runner. This option requires the AMD WSL single-view draft workflow and cannot be combined with `vertexColors`, multi-view input or 1024 geometry.
+
+## Native Windows AMD backend
+
+An explicit `windows-rocm` backend exists beside the unchanged NVIDIA `windows` and AMD `wsl` backends. Its isolated runtime is `runtime/ComfyUI-Pixal3D-AMD-Native` (or the absolute `ASTRA_PIXAL3D_NATIVE_DIR` override), with native portable Python, ROCm PyTorch and SDPA process construction. It does not call WSL or use `/mnt/c` paths. Backend selection is explicit, and failed native readiness never silently launches WSL.
+
+On 2026-11-03 native single-view draft 512 generation passed on RX 9070 XT / `gfx1201` with PyTorch `2.9.1+rocm7.2.1` and HIP `7.2.53211-158bd99533`. Job `9a99b3dd-f598-4474-b6ff-6b0fef843fe5` completed in 161.4 seconds with no fallback events; the validated 1,825,416-byte GLB contains 53,824 vertices and 98,233 triangles. Reports are `data/runtime/diagnostics/native-amd/512-single.json` and `data/runtime/diagnostics/native-amd/cumesh-probe.log`.
+
+Only native `single512` is enabled. Multi-view, 1024 and UV workflows remain locked behind `pixal3d_native_not_ready`. See `docs/forge/pixal3d-native-amd.md` and `scripts/native/README.md` for selection, rollback, installer and probe commands.
+
+Job results now also retain the selected backend, phase timings, fallback events and output geometry when supplied by the runner. The hardware E2E script accepts `AMD_PIXAL3D_BACKEND=wsl|windows-rocm`, `AMD_PIXAL3D_OUTPUT_DIR` and `AMD_PIXAL3D_JSON`; its default remains `wsl`.
 
 ## Licences
 

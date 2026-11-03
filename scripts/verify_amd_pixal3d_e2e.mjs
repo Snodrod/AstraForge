@@ -10,26 +10,39 @@ const sleep = (ms) => new Promise((resolveSleep) => setTimeout(resolveSleep, ms)
 export function parseOptions(env = process.env) {
   const views = env.AMD_PIXAL3D_VIEWS || 'single';
   const quality = env.AMD_PIXAL3D_QUALITY || 'draft';
+  const backend = env.AMD_PIXAL3D_BACKEND || 'wsl';
   const vertexColors = env.AMD_PIXAL3D_VERTEX_COLORS === '1';
   const uvTexture = env.AMD_PIXAL3D_UV_TEXTURE === '1';
   if (!['single', 'multi'].includes(views)) throw new Error('AMD_PIXAL3D_VIEWS must be single or multi.');
   if (!['draft', 'standard'].includes(quality)) throw new Error('AMD_PIXAL3D_QUALITY must be draft or standard.');
+  if (!['wsl', 'windows-rocm'].includes(backend)) throw new Error('AMD_PIXAL3D_BACKEND must be wsl or windows-rocm.');
   if (vertexColors && views !== 'single') throw new Error('AMD Pixal3D vertex colors require the single-view workflow.');
   if (uvTexture && vertexColors) throw new Error('AMD Pixal3D UV texture and vertex colors cannot be combined.');
   if (uvTexture && views !== 'single') throw new Error('AMD Pixal3D UV texture requires the single-view workflow.');
   if ((vertexColors || uvTexture) && quality !== 'draft') throw new Error('AMD Pixal3D texturing is verified only with draft 512 geometry.');
   if (views === 'multi' && quality !== 'draft') throw new Error('AMD Pixal3D multi-view 1024 is unsupported on 16 GB and not verified on 24 GB. Use draft 512.');
-  return { views, jobId: env.AMD_PIXAL3D_JOB_ID || null, quality, vertexColors, uvTexture };
+  return {
+    views, jobId: env.AMD_PIXAL3D_JOB_ID || null, quality, vertexColors, uvTexture, backend,
+    outputDir: env.AMD_PIXAL3D_OUTPUT_DIR || null, jsonFile: env.AMD_PIXAL3D_JSON || null,
+  };
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(base + path, {
-    ...options,
-    headers: { 'x-astra-client': 'studio', ...options.headers },
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.error || `${path}: ${response.status}`);
-  return body;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const response = await fetch(base + path, {
+        ...options,
+        headers: { 'x-astra-client': 'studio', ...options.headers },
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || `${path}: ${response.status}`);
+      return body;
+    } catch (error) {
+      if (error?.cause?.code !== 'ENOBUFS' || attempt === 4) throw error;
+      await sleep(1000 * (attempt + 1));
+    }
+  }
+  throw new Error('Unreachable request retry state.');
 }
 
 async function download(path, destination) {
@@ -129,6 +142,10 @@ async function waitForStudio() {
 async function main() {
   const options = parseOptions();
   await waitForStudio();
+  const status = await request('/api/status');
+  if (status.pixal3d?.backend !== options.backend) {
+    throw new Error(`AstraForge is configured for ${status.pixal3d?.backend || 'unknown'}, but the runner requested ${options.backend}. Select the backend explicitly; no automatic fallback is allowed.`);
+  }
   await request('/api/runtime/pixal3d/start', { method: 'POST' });
   let job;
   if (options.jobId) {
@@ -163,17 +180,23 @@ async function main() {
   if (!result.asset?.id) throw new Error('Completed Pixal3D job has no GLB asset.');
   const validation = await request(`/api/jobs/${job.id}/validate`, { method: 'POST' });
   if (!validation.accepted) throw new Error('GLB validation failed.');
-  const out = resolve('data/runtime');
+  const out = resolve(options.outputDir || 'data/runtime');
   mkdirSync(out, { recursive: true });
-  const png = await download(`/api/assets/${result.imageId}`, resolve(out, `amd-pixal3d-${options.views}-input.png`));
-  const suffix = options.uvTexture ? '-uv' : options.vertexColors ? '-colors' : options.quality === 'standard' ? '-standard' : '';
-  const glbPath = resolve(out, `amd-pixal3d-${options.views}${suffix}.glb`);
+  const nativePrefix = options.backend === 'windows-rocm' ? '-native' : '';
+  const png = await download(`/api/assets/${result.imageId}`, resolve(out, `amd-pixal3d${nativePrefix}-${options.views}-input.png`));
+  const suffix = options.uvTexture ? (options.backend === 'windows-rocm' ? '-uv1024' : '-uv') : options.vertexColors ? '-colors' : options.quality === 'standard' ? '-standard' : '';
+  const glbPath = resolve(out, `amd-pixal3d${nativePrefix}-${options.views}${suffix}.glb`);
   const glb = await download(`/api/assets/${result.asset.id}`, glbPath);
   if (png.length < 100 || png.subarray(1, 4).toString() !== 'PNG') throw new Error('Invalid input PNG.');
-  const geometry = validateGeneratedMesh(glb, { requireVertexColors: options.vertexColors, requireUvTexture: options.uvTexture });
-  console.log(JSON.stringify({
+  const geometry = validateGeneratedMesh(glb, {
+    requireVertexColors: options.vertexColors,
+    requireUvTexture: options.uvTexture,
+    expectedUvTextureSize: options.uvTexture && options.backend === 'windows-rocm' ? 1024 : null,
+  });
+  const report = {
     job: job.id,
     engine: result.engine,
+    backend: options.backend,
     views: options.views,
     quality: options.quality,
     vertexColors: options.vertexColors,
@@ -184,7 +207,12 @@ async function main() {
     geometry,
     pixal3d: result.pixal3d,
     validation,
-  }, null, 2));
+  };
+  if (options.jsonFile) {
+    mkdirSync(resolve(options.jsonFile, '..'), { recursive: true });
+    writeFileSync(options.jsonFile, JSON.stringify(report, null, 2) + '\n');
+  }
+  console.log(JSON.stringify(report, null, 2));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

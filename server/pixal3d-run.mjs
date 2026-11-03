@@ -46,6 +46,25 @@ export function explainPixal3dError(text) {
   return t.slice(0, 900) || 'Pixal3D could not build the geometry. See data/runtime/pixal3d.log.';
 }
 
+/** Serializable job metadata; the GLB buffer intentionally stays out of job JSON. */
+export function pixal3dJobDetails(result) {
+  return {
+    seconds: result.seconds,
+    slots: result.slots,
+    targetFaces: result.targetFaces,
+    vertexColors: result.vertexColors,
+    uvTexture: result.uvTexture,
+    vramPeakMb: result.vram?.peak_used_mb ?? null,
+    vramBaselineMb: result.vram?.baseline_used_mb ?? null,
+    scale: result.normalization.scale,
+    handover: result.handover,
+    backend: result.backend || 'windows',
+    phases: result.phases || [],
+    fallbackEvents: result.fallbackEvents || [],
+    output: result.output || null,
+  };
+}
+
 async function comfyJson(url, options = {}) {
   const res = await fetch(url, { ...options, signal: options.signal || AbortSignal.timeout(15000) });
   let body;
@@ -88,7 +107,7 @@ async function cancelPrompt(url, promptId) {
 }
 
 /** Progress follower: websocket events -> onProgress({percent, message}). Never throws; progress is optional. */
-function followProgress({ url, clientId, workflow, onProgress, getPromptId, WebSocketImpl, tickMs = 2000 }) {
+function followProgress({ url, clientId, workflow, onProgress, onPhase, getPromptId, WebSocketImpl, tickMs = 2000 }) {
   let phase = null, last = -1, phaseAt = 0, phaseSteps = false;
   const emit = (percent, message) => {
     percent = Math.max(0, Math.min(98, Math.round(percent)));
@@ -107,7 +126,12 @@ function followProgress({ url, clientId, workflow, onProgress, getPromptId, WebS
       if (v.data?.prompt_id && promptId && v.data.prompt_id !== promptId) return;
       if (v.type === 'executing' && v.data?.node) {
         const next = PIXAL3D_PHASES[workflow[v.data.node]?.class_type];
-        if (next && next !== phase) { phase = next; phaseAt = Date.now(); phaseSteps = false; }
+        if (next && next !== phase) {
+          phase = next;
+          phaseAt = Date.now();
+          phaseSteps = false;
+          onPhase?.(workflow[v.data.node]?.class_type, phaseAt);
+        }
         if (phase) emit(phase[0], phase[2]);
       } else if (v.type === 'progress' && phase && v.data?.max > 0) {
         phaseSteps = true;
@@ -179,7 +203,19 @@ export async function generatePixal3d(o) {
   });
   const clientId = randomUUID();
   let promptId = null, vramProbe = false;
-  const follower = followProgress({ url: cfg.url, clientId, workflow, onProgress, getPromptId: () => promptId, WebSocketImpl: deps.WebSocketImpl || WebSocket, tickMs: deps.tickMs });
+  const phases = [];
+  let activePhase = null;
+  const finishPhase = (endedAt = Date.now()) => {
+    if (!activePhase || activePhase.endedAt !== undefined) return;
+    activePhase.endedAt = endedAt;
+    activePhase.durationMs = endedAt - activePhase.startedAt;
+  };
+  const recordPhase = (name, startedAt) => {
+    finishPhase(startedAt);
+    activePhase = { name, startedAt };
+    phases.push(activePhase);
+  };
+  const follower = followProgress({ url: cfg.url, clientId, workflow, onProgress, onPhase: recordPhase, getPromptId: () => promptId, WebSocketImpl: deps.WebSocketImpl || WebSocket, tickMs: deps.tickMs });
   const started = Date.now();
   try {
     await follower.ready;
@@ -220,11 +256,13 @@ export async function generatePixal3d(o) {
     const raw = await downloadGlb(cfg.url, item, signal);
     validateGeneratedMesh(raw, { requireVertexColors: !!o.vertexColors, requireUvTexture: !!o.uvTexture });
     const normalized = normalizeGlb(raw);
-    validateGeneratedMesh(normalized.buffer, { requireVertexColors: !!o.vertexColors, requireUvTexture: !!o.uvTexture });
+    const output = validateGeneratedMesh(normalized.buffer, { requireVertexColors: !!o.vertexColors, requireUvTexture: !!o.uvTexture });
     const vram = vramProbe ? await comfyJson(cfg.url + '/af/vram/stop', { method: 'POST', signal: AbortSignal.timeout(3000) }).catch(() => null) : null;
     vramProbe = false;
+    finishPhase();
     return {
       buffer: normalized.buffer, seconds: Math.round((Date.now() - started) / 100) / 10, promptId, slots, seed, quality, targetFaces, vertexColors: !!o.vertexColors, uvTexture: !!o.uvTexture, rawBytes: raw.length, url: cfg.url, vram, handover: gpu.handover || null,
+      backend: cfg.backend || 'windows', phases, fallbackEvents: [], output: { vertices: output.vertices, triangles: output.triangles },
       normalization: { scale: normalized.scale, center: normalized.center, extentBefore: normalized.before.extent, extentAfter: normalized.after.extent },
     };
   } catch (error) {

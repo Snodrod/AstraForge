@@ -7,6 +7,8 @@ import path from 'node:path';
 import { root, data } from './storage.mjs';
 import { localUrl } from './schema.mjs';
 import { pixal3dWslArgs } from './pixal3d-wsl.mjs';
+import { getPixal3DBackend } from './pixal3d-backends.mjs';
+import { buildNativePixal3DLaunch } from './pixal3d-native.mjs';
 
 export const DEFAULT_PIXAL3D_DIR = 'C:/AstraForge/ComfyUI-Pixal3D';
 export const DEFAULT_PIXAL3D_URL = 'http://127.0.0.1:8191';
@@ -48,8 +50,17 @@ export function validatePixal3dRequest(input, cfg = pixal3dConfig(), { multi = !
   if (texturing && input.quality !== 'draft') {
     throw pixal3dRequestError('pixal3d_texturing_requires_draft', 'Pixal3D texturing is verified only with draft 512 geometry. Select draft 512; the 1024 texturing combination is not verified.');
   }
-  if (multi && cfg.backend === 'wsl' && input.quality !== 'draft') {
+  if (multi && ['wsl', 'windows-rocm'].includes(cfg.backend) && input.quality !== 'draft') {
     throw pixal3dRequestError('pixal3d_amd_multiview_1024_unsupported', 'AMD multi-view 1024 is unsupported on the verified 16 GB GPU and not verified on 24 GB GPUs. Use draft 512.');
+  }
+  if (cfg.backend === 'windows-rocm') {
+    if (input.vertexColors) {
+      throw pixal3dRequestError('pixal3d_native_capability_unsupported', 'Native AMD vertex colors are not verified yet. Use the WSL backend or generate shape only.');
+    }
+    const capability = input.uvTexture ? 'uvTexture1024' : input.quality === 'draft' ? (multi ? 'multi512' : 'single512') : (multi ? 'multi1024' : 'single1024');
+    if (!cfg.nativeCapabilities?.[capability]) {
+      throw pixal3dRequestError('pixal3d_native_not_ready', 'Native AMD Pixal3D is not verified for this workflow. Run the native probes or select the WSL backend.', { capability });
+    }
   }
 }
 
@@ -79,9 +90,17 @@ function readPathsJson(rootDir) {
  */
 export function pixal3dConfig({ env = process.env, appRoot = root } = {}) {
   const paths = readPathsJson(appRoot);
-  let dir = DEFAULT_PIXAL3D_DIR, source = 'default';
-  if (env.ASTRA_PIXAL3D_DIR) { dir = env.ASTRA_PIXAL3D_DIR; source = 'env'; }
-  else if (typeof paths.pixal3dDir === 'string' && paths.pixal3dDir.trim()) { dir = paths.pixal3dDir.trim(); source = 'paths.json'; }
+  const backend = env.ASTRA_PIXAL3D_BACKEND || paths.pixal3dBackend || 'windows';
+  const nativeEnv = !env.ASTRA_PIXAL3D_NATIVE_DIR && paths.pixal3dNativeDir
+    ? { ...env, ASTRA_PIXAL3D_NATIVE_DIR: paths.pixal3dNativeDir }
+    : env;
+  const descriptor = getPixal3DBackend(backend, nativeEnv, appRoot);
+  let dir = backend === 'windows-rocm' ? descriptor.runtimeRoot : DEFAULT_PIXAL3D_DIR;
+  let source = backend === 'windows-rocm' ? (nativeEnv.ASTRA_PIXAL3D_NATIVE_DIR ? 'native-config' : 'native-default') : 'default';
+  if (backend !== 'windows-rocm') {
+    if (env.ASTRA_PIXAL3D_DIR) { dir = env.ASTRA_PIXAL3D_DIR; source = 'env'; }
+    else if (typeof paths.pixal3dDir === 'string' && paths.pixal3dDir.trim()) { dir = paths.pixal3dDir.trim(); source = 'paths.json'; }
+  }
   let url = DEFAULT_PIXAL3D_URL;
   const wanted = env.ASTRA_PIXAL3D_URL || paths.pixal3dUrl;
   if (wanted) {
@@ -90,10 +109,17 @@ export function pixal3dConfig({ env = process.env, appRoot = root } = {}) {
     url = parsed.data;
   }
   const port = Number(new URL(url).port) || 80;
-  const backend = env.ASTRA_PIXAL3D_BACKEND || paths.pixal3dBackend || 'windows';
-  if (!['windows', 'wsl'].includes(backend)) throw new Error('Pixal3D backend must be windows or wsl.');
   const wslDistro = String(env.ASTRA_PIXAL3D_WSL_DISTRO || paths.pixal3dWslDistro || 'AstraForge-AMD').trim() || 'AstraForge-AMD';
-  return { dir: path.resolve(dir), url, port, source, backend, wslDistro };
+  let nativeCapabilities = descriptor.capabilities;
+  if (backend === 'windows-rocm') {
+    try {
+      const readiness = JSON.parse(readFileSync(path.join(dir, 'native-ready.json'), 'utf8').replace(/^\uFEFF/, ''));
+      nativeCapabilities = Object.fromEntries(Object.keys(descriptor.capabilities).map((key) => [key, readiness?.capabilities?.[key] === true]));
+    } catch {
+      nativeCapabilities = Object.fromEntries(Object.keys(descriptor.capabilities).map((key) => [key, false]));
+    }
+  }
+  return { dir: path.resolve(dir), url, port, source, backend, wslDistro, nativeDir: descriptor.runtimeRoot, nativeCapabilities };
 }
 
 /** Disk check only (no network): which required files are missing. */
@@ -103,7 +129,9 @@ export function pixal3dInstallState(cfg = pixal3dConfig(), exists = existsSync) 
   }
   const requirements = cfg.backend === 'wsl'
     ? [...PIXAL3D_REQUIREMENTS.filter(([rel]) => rel !== 'python_embeded/python.exe'), ['wsl-ready.json', 'Verified ROCm WSL runtime']]
-    : PIXAL3D_REQUIREMENTS;
+    : cfg.backend === 'windows-rocm'
+      ? [...PIXAL3D_REQUIREMENTS, ['native-ready.json', 'Verified native Windows ROCm runtime']]
+      : PIXAL3D_REQUIREMENTS;
   const missing = requirements.filter(([rel]) => !exists(path.join(cfg.dir, rel))).map(([rel, label]) => ({ path: rel, label }));
   if (missing.length) {
     const names = missing.slice(0, 3).map((m) => m.label).join('; ') + (missing.length > 3 ? ` and ${missing.length - 3} more` : '');
@@ -197,14 +225,19 @@ export async function startPixal3dRuntime(o = {}) {
   } else {
     onProgress?.('Starting the Pixal3D engine (the first start takes 1-2 minutes)');
     const tempDir = pixal3dTempDir(runtimeDir), logFile = pixal3dLogFile(runtimeDir);
-    const executable = cfg.backend === 'wsl' ? 'wsl.exe' : path.join(cfg.dir, 'python_embeded', 'python.exe');
+    const nativeLaunch = cfg.backend === 'windows-rocm' ? buildNativePixal3DLaunch({
+      config: cfg,
+      descriptor: { id: 'windows-rocm', runtimeRoot: cfg.dir, pythonPath: path.join(cfg.dir, 'python_embeded', 'python.exe') },
+      tempDir, dbFile: path.join(runtimeDir, 'pixal3d.db'),
+    }) : null;
+    const executable = cfg.backend === 'wsl' ? 'wsl.exe' : nativeLaunch?.command || path.join(cfg.dir, 'python_embeded', 'python.exe');
     const args = cfg.backend === 'wsl'
       ? pixal3dWslArgs(cfg, runtimeDir)
-      : pixal3dArgs(cfg, tempDir, path.join(runtimeDir, 'pixal3d.db'));
+      : nativeLaunch?.args || pixal3dArgs(cfg, tempDir, path.join(runtimeDir, 'pixal3d.db'));
     await fs.mkdir(tempDir, { recursive: true });   // also creates runtimeDir
     const fd = openSync(logFile, 'a');
     try {
-      child = spawnFn(executable, args, { cwd: cfg.dir, windowsHide: true, detached: true, stdio: ['ignore', fd, fd], env: pixal3dEnv(cfg) });
+      child = spawnFn(executable, args, { cwd: nativeLaunch?.cwd || cfg.dir, windowsHide: true, detached: true, stdio: ['ignore', fd, fd], env: pixal3dEnv(cfg, nativeLaunch?.env || process.env) });
       childCfg = cfg;
       child.unref?.();
     } finally { closeSync(fd); }

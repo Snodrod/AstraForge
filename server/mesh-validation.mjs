@@ -1,6 +1,6 @@
 export const maxMeshBytes=100*1024*1024,maxMeshTriangles=2500000;
 const pngSignature=[137,80,78,71,13,10,26,10];
-export function validateGeneratedMesh(buffer,{requireVertexColors=false,requireUvTexture=false}={}){
+export function validateGeneratedMesh(buffer,{requireVertexColors=false,requireUvTexture=false,expectedUvTextureSize=null}={}){
  if(buffer.length>maxMeshBytes)throw new Error('The mesh exceeds 100 MB. Check the surface level; such a result will not be imported.');
  if(buffer.length<28||buffer.toString('ascii',0,4)!=='glTF'||buffer.readUInt32LE(4)!==2||buffer.readUInt32LE(8)!==buffer.length)throw new Error('Invalid GLB from the generator.');
  const size=buffer.readUInt32LE(12);if(size>buffer.length-20||buffer.toString('ascii',16,20)!=='JSON')throw new Error('Invalid geometry header.');
@@ -20,12 +20,14 @@ export function validateGeneratedMesh(buffer,{requireVertexColors=false,requireU
   const image=doc.images?.[texture?.source],view=doc.bufferViews?.[image?.bufferView];
   const offset=view?.byteOffset??0,length=view?.byteLength;
   const validPng=hasBin&&(view?.buffer??0)===0&&Number.isSafeInteger(offset)&&offset>=0&&Number.isSafeInteger(length)&&length>=8&&offset+length<=binLength&&binStart+offset+length<=buffer.length&&pngSignature.every((v,i)=>buffer[binStart+offset+i]===v);
-  if(!uv||uv.count!==position.count||uv.type!=='VEC2'||![5121,5123,5126].includes(uv.componentType)||!validPng)uvTexture=false;
+  const pngStart=binStart+offset;
+  const validPngSize=expectedUvTextureSize===null||(validPng&&length>=24&&buffer.toString('ascii',pngStart+12,pngStart+16)==='IHDR'&&buffer.readUInt32BE(pngStart+16)===expectedUvTextureSize&&buffer.readUInt32BE(pngStart+20)===expectedUvTextureSize);
+  if(!uv||uv.count!==position.count||uv.type!=='VEC2'||![5121,5123,5126].includes(uv.componentType)||!validPng||!validPngSize)uvTexture=false;
   vertices+=position.count;triangles+=indices.count/3;
  }
  if(!triangles)throw new Error('The generator returned an empty mesh.');
  if(triangles>maxMeshTriangles)throw new Error('The mesh exceeds 2.5 million triangles. The surface level may be set incorrectly.');
  if(requireVertexColors&&!vertexColors)throw new Error('Invalid or missing COLOR_0 vertex colors.');
- if(requireUvTexture&&!uvTexture)throw new Error('Invalid or missing TEXCOORD_0/baseColorTexture PNG.');
+ if(requireUvTexture&&!uvTexture)throw new Error(`Invalid or missing TEXCOORD_0/baseColorTexture PNG${expectedUvTextureSize===null?'':` or expected ${expectedUvTextureSize} × ${expectedUvTextureSize} atlas dimensions`}.`);
  return {bytes:buffer.length,triangles,vertices,accepted:true,vertexColors,uvTexture,scope:'technical bounds; anatomy is not validated'};
 }

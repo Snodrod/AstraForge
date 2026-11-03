@@ -58,8 +58,8 @@ export function pixal3dWorkflow(images,{seed=1000,prefix='astra/pixal3d',targetF
  if(vertexColors&&multi)throw new Error('Pixal3D vertex colors currently require the single-view workflow.');
  if(uvTexture&&vertexColors)throw new Error('Pixal3D UV texture and vertex colors cannot be combined.');
  if(uvTexture&&multi)throw new Error('Pixal3D UV texture currently requires the single-view workflow.');
- if(uvTexture&&runtimeBackend!=='wsl')throw new Error('Pixal3D UV texture currently requires the AMD WSL runtime.');
- const attention=runtimeBackend==='wsl'?'sdpa':'flash_attn';
+ if(uvTexture&&!['wsl','windows-rocm'].includes(runtimeBackend))throw new Error('Pixal3D UV texture currently requires an AMD runtime.');
+ const attention=['wsl','windows-rocm'].includes(runtimeBackend)?'sdpa':'flash_attn';
  if(draft)sampler='euler';
  const g={};
  g['1']={class_type:'Trellis2LoadModel',inputs:{modelname:PIXAL3D_MODEL,backend:attention,device:'cuda',low_vram:true,keep_models_loaded:false,conv_backend:'flex_gemm',sparse_backend:attention,use_reconviagen:false,pixal3d_multiview:multi}};
@@ -93,7 +93,7 @@ export function pixal3dWorkflow(images,{seed=1000,prefix='astra/pixal3d',targetF
  if(vertexColors||uvTexture)g['40']={class_type:'Trellis2MeshTexturingPixal3DMultiView',inputs:{
   pipeline:[decoded,2],trimesh:['26',0],image:['3',0],moge_camera_config:['4',3],seed,
   texture_steps:12,texture_guidance_strength:1,texture_guidance_rescale:0,texture_rescale_t:3,
-  resolution:1024,texture_size:512,texture_alpha_mode:'OPAQUE',double_side_material:false,
+  resolution:1024,texture_size:runtimeBackend==='windows-rocm'?1024:512,texture_alpha_mode:'OPAQUE',double_side_material:false,
   texture_guidance_interval_start:0.6,texture_guidance_interval_end:0.9,bake_on_vertices:!uvTexture,
   use_custom_normals:false,mesh_cluster_threshold_cone_half_angle_rad:60,mesh_orientation:'none',
   sampler:'euler',inpainting:'telea',verbose:false,dino_lock:0,dino_substeps:4,dino_foundation_cap:1,

@@ -442,6 +442,19 @@ test('GLB validation: UV mode requires TEXCOORD_0 and an embedded base color PNG
   assert.equal(validateGeneratedMesh(boxGlb()).accepted, true);
 });
 
+test('GLB validation: an explicitly requested UV atlas size checks embedded PNG IHDR', () => {
+  const png = Buffer.alloc(40);
+  Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(png);
+  png.writeUInt32BE(13, 8);
+  png.write('IHDR', 12, 'ascii');
+  png.writeUInt32BE(1024, 16);
+  png.writeUInt32BE(1024, 20);
+  const textured = texturedBoxGlb({ png });
+  assert.equal(validateGeneratedMesh(textured, { requireUvTexture: true, expectedUvTextureSize: 1024 }).uvTexture, true);
+  assert.equal(validateGeneratedMesh(normalizeGlb(textured).buffer, { requireUvTexture: true, expectedUvTextureSize: 1024 }).uvTexture, true);
+  assert.throws(() => validateGeneratedMesh(textured, { requireUvTexture: true, expectedUvTextureSize: 512 }), /1024|512|atlas|dimensions/);
+});
+
 test('normalizeGlb: centred on the origin, height exactly 2, uniform scale, indices and the rest untouched', () => {
   const src = boxGlb();   // extent 1.0 x 1.0 x 0.3, centre (0.1, 0.2, 0.05)
   const r = normalizeGlb(src);
@@ -587,6 +600,16 @@ test('generatePixal3d: uploads the cut-outs, queues the graph, follows the progr
     assert.deepEqual(result.handover.freed, ['hunyuan'], 'the hand-over report travels with the result (stored on the job)');
     assert.deepEqual(result.slots, ['front', 'left', 'back', 'right']);
     assert.equal(result.vram.peak_used_mb, 11200);
+    assert.equal(result.backend, 'windows');
+    assert.deepEqual(result.fallbackEvents, []);
+    assert.deepEqual(result.output, { vertices: 8, triangles: 4 });
+    for (const name of ['Trellis2LoadModel', 'Trellis2SparseGenerator', 'Trellis2ShapeCascadeGenerator', 'Trellis2ExportMesh']) {
+      const phase = result.phases.find((item) => item.name === name);
+      assert.ok(phase, 'recorded phase ' + name);
+      assert.ok(Number.isFinite(phase.startedAt) && Number.isFinite(phase.endedAt));
+      assert.ok(phase.endedAt >= phase.startedAt);
+      assert.equal(phase.durationMs, phase.endedAt - phase.startedAt);
+    }
     // geometry: normalised like the Hunyuan seeds
     const b = glbBounds(result.buffer);
     assert.ok(Math.abs(b.extent[1] - 2) < 1e-5);
@@ -750,6 +773,21 @@ test('generatePixal3d: without a front view or without an installation it stops 
   await assert.rejects(generatePixal3d({ images: cutFiles(['front']), cfg: { dir: path.join(tmp, 'no-px'), url: DEFAULT_PIXAL3D_URL, port: 8191 }, deps: { acquire } }),
     (e) => e.code === 'pixal3d_not_installed' && /Pixal3D is not installed/.test(e.message));
   assert.equal(acquired, 0);
+});
+
+test('Pixal3D job details preserve native telemetry without serializing the GLB buffer', async () => {
+  const { pixal3dJobDetails } = await import('../server/pixal3d-run.mjs');
+  const details = pixal3dJobDetails({
+    seconds: 12.3, slots: ['front'], targetFaces: 100000, vertexColors: false, uvTexture: false,
+    vram: { peak_used_mb: 12000, baseline_used_mb: 2000 }, normalization: { scale: 2 }, handover: null,
+    backend: 'windows-rocm', phases: [{ name: 'Trellis2LoadModel', startedAt: 1, endedAt: 2, durationMs: 1 }],
+    fallbackEvents: [], output: { vertices: 8, triangles: 4 }, buffer: Buffer.from('not serialized'),
+  });
+  assert.equal(details.backend, 'windows-rocm');
+  assert.equal(details.phases.length, 1);
+  assert.deepEqual(details.output, { vertices: 8, triangles: 4 });
+  assert.equal(details.buffer, undefined);
+  assert.equal(details.vramPeakMb, 12000);
 });
 
 test('error texts and progress phases', () => {

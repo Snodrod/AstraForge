@@ -1,0 +1,57 @@
+diff --git a/o-voxel/o_voxel/convert/flexible_dual_grid.py b/o-voxel/o_voxel/convert/flexible_dual_grid.py
+index 60ce246..3028490 100644
+--- a/o-voxel/o_voxel/convert/flexible_dual_grid.py
++++ b/o-voxel/o_voxel/convert/flexible_dual_grid.py
+@@ -17,6 +17,8 @@ def tiled_flexible_dual_grid_to_mesh(
+     aabb, grid_size, tile_size=128, overlap=1, train=False, verbose=False
+     ):
+     device = coords.device
++    aabb_tensor = torch.as_tensor(aabb, dtype=torch.float32, device=device)
++    voxel_size = (aabb_tensor[1] - aabb_tensor[0]) / torch.as_tensor(grid_size, device=device)
+     
+     # Keep everything on GPU
+     min_coord = coords.min(dim=0).values
+@@ -43,12 +45,14 @@ def tiled_flexible_dual_grid_to_mesh(
+                 mask = torch.all((coords >= lower - overlap) & (coords < upper + overlap), dim=1)
+                 
+                 if mask.any():
+-                    # 2. CRITICAL: .contiguous() ensures the memory layout is 
+-                    # exactly what the custom CUDA kernel expects.
+-                    t_coords = coords[mask].contiguous()
+-                    t_dual = dual_vertices[mask].contiguous()
+-                    t_inter = intersected_flag[mask].contiguous()
+-                    t_weight = split_weight[mask].contiguous()
++                    # 2. CRITICAL: .contiguous() ensures the memory layout is
++                    # exactly what the custom CUDA kernel expects. Share one nonzero
++                    # scan instead of four boolean-indexing synchronizations.
++                    selected = mask.nonzero(as_tuple=True)[0]
++                    t_coords = coords.index_select(0, selected).contiguous()
++                    t_dual = dual_vertices.index_select(0, selected).contiguous()
++                    t_inter = intersected_flag.index_select(0, selected).contiguous()
++                    t_weight = split_weight.index_select(0, selected).contiguous()
+                     
+                     if not t_inter.any():
+                         pbar.update(1)
+@@ -61,9 +65,19 @@ def tiled_flexible_dual_grid_to_mesh(
+                         )
+                         
+                         if t_verts is not None and t_verts.shape[0] > 0:
+-                            all_vertices.append(t_verts)
+-                            all_faces.append(t_faces + vertex_count)
+-                            vertex_count += t_verts.shape[0]
++                            # Overlapping tiles emit the same triangles. Keep each triangle only in
++                            # the tile containing its centroid, including the outer grid boundary.
++                            centers = t_verts[t_faces].mean(dim=1)
++                            tile_min = aabb_tensor[0] + lower * voxel_size
++                            tile_max = aabb_tensor[0] + upper * voxel_size
++                            inside = (centers >= tile_min) & (
++                                (centers < tile_max) | ((upper > max_coord) & (centers <= tile_max))
++                            )
++                            t_faces = t_faces[inside.all(dim=1)]
++                            if t_faces.shape[0] > 0:
++                                all_vertices.append(t_verts)
++                                all_faces.append(t_faces + vertex_count)
++                                vertex_count += t_verts.shape[0]
+                     except RuntimeError as e:
+                         if verbose:
+                             print(f"Tile ({x}, {y}, {z}) failed: {e}")

@@ -10,7 +10,7 @@ import { prepareConcept } from './preprocess.mjs';
 import {validateGeneratedMesh,maxMeshBytes} from './mesh-validation.mjs';
 import {acquireEngineGpu} from './gpu-handover.mjs';
 import {pixal3dConfig,pixal3dStatus} from './pixal3d.mjs';
-import {generatePixal3d} from './pixal3d-run.mjs';
+import {generatePixal3d,pixal3dJobDetails} from './pixal3d-run.mjs';
 const jobs=new Map();const controllers=new Map();let active=null;let pumping=false;
 export async function loadJobs(){for(const file of await fs.readdir(path.join(data,'jobs'))){if(!file.endsWith('.json'))continue;const j=await readJson(path.join(data,'jobs',file),null);if(!j)continue;if(['queued','running'].includes(j.status)){j.status='failed';j.message='The job was interrupted by a restart. Start the generation again.';await persist(j);}jobs.set(j.id,j);}}
 const writes=new Map();
@@ -93,7 +93,7 @@ async function runPixal3d(j,config,signal){
  signal.throwIfAborted();
  const asset=await saveAsset(result.buffer,'.glb',j.viewSetId?'Pixal3D · from views':'Pixal3D · '+(j.prompt||'from image').slice(0,50));
  const validation=validateGeneratedMesh(result.buffer,{requireVertexColors:!!j.vertexColors,requireUvTexture:!!j.uvTexture});
- await update(j,{status:'completed',progress:100,message:'Geometry created · Pixal3D · needs review',asset,validation,pixal3d:{seconds:result.seconds,slots:result.slots,targetFaces:result.targetFaces,vertexColors:result.vertexColors,uvTexture:result.uvTexture,vramPeakMb:result.vram?.peak_used_mb??null,vramBaselineMb:result.vram?.baseline_used_mb??null,scale:result.normalization.scale,handover:result.handover}});
+ await update(j,{status:'completed',progress:100,message:'Geometry created · Pixal3D · needs review',asset,validation,pixal3d:pixal3dJobDetails(result)});
 }
 async function run(j,config,signal){
  if(j.engine==='pixal3d')return runPixal3d(j,config,signal);
