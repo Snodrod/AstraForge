@@ -40,6 +40,10 @@ test('native AMD workflow uses SDPA and selects a 1024 UV atlas only for explici
   const textured = pixal3dWorkflow({ front: 'f.png' }, { runtimeBackend: 'windows-rocm', quality: 'draft', uvTexture: true });
   assert.equal(textured['40'].inputs.texture_size, 1024);
   assert.equal(textured['40'].inputs.bake_on_vertices, false);
+  const standardUv = pixal3dWorkflow({ front: 'f.png' }, { runtimeBackend: 'windows-rocm', quality: 'standard', uvTexture: true });
+  assert.equal(standardUv['22'].inputs.resolution, 1024);
+  assert.equal(standardUv['40'].inputs.texture_size, 1024);
+  assert.equal(standardUv['40'].inputs.bake_on_vertices, false);
   assert.equal(pixal3dWorkflow({ front: 'f.png' }, { runtimeBackend: 'wsl', quality: 'draft', uvTexture: true })['40'].inputs.texture_size, 512);
 });
 
@@ -51,7 +55,12 @@ test('native AMD request validation gates UV 1024 separately and blocks unsuppor
   const uv = { ...shape, uvTexture: true };
   assert.throws(() => validatePixal3dRequest(uv, { backend: 'windows-rocm', nativeCapabilities: { single512: true } }, { multi: false }), (error) => error.code === 'pixal3d_native_not_ready' && error.capability === 'uvTexture1024');
   assert.doesNotThrow(() => validatePixal3dRequest(uv, { backend: 'windows-rocm', nativeCapabilities: { single512: true, uvTexture1024: true } }, { multi: false }));
-  assert.throws(() => validatePixal3dRequest({ ...uv, quality: 'standard' }, { backend: 'windows-rocm', nativeCapabilities: { single1024: true, uvTexture1024: true } }, { multi: false }), (error) => error.code === 'pixal3d_texturing_requires_draft');
+  const standardUv = { ...uv, quality: 'standard' };
+  assert.throws(() => validatePixal3dRequest(standardUv, { backend: 'windows-rocm', nativeCapabilities: { single1024: true, uvTexture1024: true } }, { multi: false }), (error) => error.code === 'pixal3d_native_not_ready' && error.capability === 'uvTextureStandard1024');
+  assert.throws(() => validatePixal3dRequest(standardUv, { backend: 'windows-rocm', nativeCapabilities: { uvTextureStandard1024: true } }, { multi: false }), (error) => error.code === 'pixal3d_native_not_ready' && error.capability === 'single1024');
+  assert.doesNotThrow(() => validatePixal3dRequest(standardUv, { backend: 'windows-rocm', nativeCapabilities: { single1024: true, uvTextureStandard1024: true } }, { multi: false }));
+  assert.throws(() => validatePixal3dRequest({ ...standardUv, uvTexture: false, vertexColors: true }, { backend: 'windows-rocm', nativeCapabilities: { single1024: true, uvTextureStandard1024: true } }, { multi: false }), (error) => error.code === 'pixal3d_texturing_requires_draft');
+  assert.throws(() => validatePixal3dRequest(standardUv, { backend: 'wsl' }, { multi: false }), (error) => error.code === 'pixal3d_texturing_requires_draft');
 });
 
 test('native AMD config reads only explicitly verified capabilities from native-ready.json', async () => {

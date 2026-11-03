@@ -33,6 +33,7 @@ test('native AMD capabilities fail closed until hardware probes unlock them', ()
     multi1024: false,
     uvTexture512: false,
     uvTexture1024: false,
+    uvTextureStandard1024: false,
   });
   assert.ok(Object.isFrozen(native));
   assert.ok(Object.isFrozen(native.capabilities));

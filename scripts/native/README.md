@@ -2,7 +2,7 @@
 
 These tools build and probe an **isolated native Windows ROCm runtime**. They do not install or replace GPU drivers, change WSL, modify the NVIDIA runtime, or request a reboot.
 
-Current scope on RX 9070 XT: native single-view draft 512 shape, standard 1024 shape, and draft 512 geometry with a 1024 × 1024 UV atlas are verified. Multi-view, UV 512, and standard-1024 texturing remain locked. The base installer still installs only the Python/PyTorch HIP foundation; the complete ComfyUI/TRELLIS.2 runtime and model weights are separate readiness requirements.
+Current scope on RX 9070 XT: native single-view draft 512 shape, standard 1024 shape, draft 512 geometry with a 1024 × 1024 UV atlas, and standard 1024 geometry with a 1024 × 1024 UV atlas are verified. Multi-view and UV 512 remain locked. The base installer still installs only the Python/PyTorch HIP foundation; the complete ComfyUI/TRELLIS.2 runtime and model weights are separate readiness requirements.
 
 ## Layout
 
@@ -59,7 +59,7 @@ A passing base installation writes `native-base-ready.json` with the GPU, Torch/
 
 ## Hardware result: RX 9070 XT
 
-Measured on 2026-11-03 with `AMD Radeon RX 9070 XT`, `gfx1201`, 17,095,983,104 bytes of device memory, PyTorch `2.9.1+rocm7.2.1`, HIP `7.2.53211-158bd99533`:
+Measured on 2026-11-03 and 2026-11-04 with `AMD Radeon RX 9070 XT`, `gfx1201`, 17,095,983,104 bytes of device memory, PyTorch `2.9.1+rocm7.2.1`, HIP `7.2.53211-158bd99533`:
 
 - native Python and ROCm/HIP import: pass;
 - GPU detection and `gfx1201` profile: pass;
@@ -70,11 +70,12 @@ Measured on 2026-11-03 with `AMD Radeon RX 9070 XT`, `gfx1201`, 17,095,983,104 b
 - tiled O-Voxel regression: direct and tiled topology match for the 12-face cube, an asymmetric grid, a negative world-space AABB and a rectangular grid;
 - native single-view draft 512 shape E2E: pass in 182.4 seconds, with 50,729 vertices, 95,570 triangles and no fallback events;
 - native single-view standard 1024 shape E2E: pass in 907.8 seconds, with 330,358 vertices, 660,712 triangles and no fallback events;
-- native single-view draft 512 geometry with a 1024 × 1024 UV atlas: pass in 546.4 seconds, with 60,079 vertices, 96,090 triangles and no fallback events.
+- native single-view draft 512 geometry with a 1024 × 1024 UV atlas: pass in 546.4 seconds, with 60,079 vertices, 96,090 triangles and no fallback events;
+- native single-view standard 1024 geometry with a 1024 × 1024 UV atlas: pass in 1,641.2 seconds, with 335,153 vertices, 660,226 triangles and no fallback events.
 
-Reports: `data/runtime/diagnostics/native-amd/base-probe.json`, `cumesh-probe.log`, `o-voxel-tiled-probe.log`, `512-single.json`, `1024-single.json`, and `512-single-uv1024.json`.
+Reports: `data/runtime/diagnostics/native-amd/base-probe.json`, `cumesh-probe.log`, `o-voxel-tiled-probe.log`, `512-single.json`, `1024-single.json`, `512-single-uv1024.json`, and `1024-single-uv1024.json`.
 
-The standard-1024 result takes about 15 minutes and is a correctness/memory-capacity gate, not a claim of fast or freeze-free generation. UV 1024 refers to atlas resolution; its verified geometry workflow is draft 512. Standard-1024 geometry with UV texturing remains unsupported.
+The standard-1024 shape-only result takes about 15 minutes; standard 1024 with UV 1024 takes about 27.4 minutes. These are correctness/memory-capacity gates, not claims of fast or freeze-free generation. UV 1024 refers to atlas resolution and is verified separately with draft-512 and standard-1024 single-view geometry.
 
 ## Reproducible runtime fixes
 
@@ -94,9 +95,10 @@ The hardware runners use seed `42` and a deterministic generated 256 × 256 RGBA
 node scripts/native/run_native_single512.mjs
 node scripts/native/run_native_single1024.mjs
 node scripts/native/run_native_uv1024.mjs
+node scripts/native/run_native_standard_uv1024.mjs
 ```
 
-They write `512-single.json`, `1024-single.json`, and `512-single-uv1024.json` under `data/runtime/diagnostics/native-amd/`, with GLBs under `data/runtime/`. `AMD_PIXAL3D_OUTPUT_DIR` controls downloaded artifacts in the generic runner. Native multi-view, UV 512, and standard-1024 texturing requests remain locked. Generation reports retain the input, seed, backend, runtime versions and workflow identity so comparisons remain reproducible.
+They write `512-single.json`, `1024-single.json`, `512-single-uv1024.json`, and `1024-single-uv1024.json` under `data/runtime/diagnostics/native-amd/`, with GLBs under `data/runtime/`. `AMD_PIXAL3D_OUTPUT_DIR` controls downloaded artifacts in the generic runner. Native multi-view and UV 512 requests remain locked. Generation reports retain the input, seed, backend, runtime versions and workflow identity so comparisons remain reproducible.
 
 Verify real cancellation and post-run cleanup separately:
 

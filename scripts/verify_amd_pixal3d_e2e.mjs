@@ -19,7 +19,8 @@ export function parseOptions(env = process.env) {
   if (vertexColors && views !== 'single') throw new Error('AMD Pixal3D vertex colors require the single-view workflow.');
   if (uvTexture && vertexColors) throw new Error('AMD Pixal3D UV texture and vertex colors cannot be combined.');
   if (uvTexture && views !== 'single') throw new Error('AMD Pixal3D UV texture requires the single-view workflow.');
-  if ((vertexColors || uvTexture) && quality !== 'draft') throw new Error('AMD Pixal3D texturing is verified only with draft 512 geometry.');
+  const nativeStandardUv = backend === 'windows-rocm' && views === 'single' && quality === 'standard' && uvTexture && !vertexColors;
+  if ((vertexColors || uvTexture) && quality !== 'draft' && !nativeStandardUv) throw new Error('AMD Pixal3D texturing is verified only with draft 512 geometry.');
   if (views === 'multi' && quality !== 'draft') throw new Error('AMD Pixal3D multi-view 1024 is unsupported on 16 GB and not verified on 24 GB. Use draft 512.');
   return {
     views, jobId: env.AMD_PIXAL3D_JOB_ID || null, quality, vertexColors, uvTexture, backend,
@@ -184,7 +185,7 @@ async function main() {
   mkdirSync(out, { recursive: true });
   const nativePrefix = options.backend === 'windows-rocm' ? '-native' : '';
   const png = await download(`/api/assets/${result.imageId}`, resolve(out, `amd-pixal3d${nativePrefix}-${options.views}-input.png`));
-  const suffix = options.uvTexture ? (options.backend === 'windows-rocm' ? '-uv1024' : '-uv') : options.vertexColors ? '-colors' : options.quality === 'standard' ? '-standard' : '';
+  const suffix = options.uvTexture ? (options.backend === 'windows-rocm' ? `${options.quality === 'standard' ? '-standard' : ''}-uv1024` : '-uv') : options.vertexColors ? '-colors' : options.quality === 'standard' ? '-standard' : '';
   const glbPath = resolve(out, `amd-pixal3d${nativePrefix}-${options.views}${suffix}.glb`);
   const glb = await download(`/api/assets/${result.asset.id}`, glbPath);
   if (png.length < 100 || png.subarray(1, 4).toString() !== 'PNG') throw new Error('Invalid input PNG.');

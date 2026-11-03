@@ -14,12 +14,13 @@ test('Pixal3D E2E enables vertex colors only for the verified single-view draft 
   assert.throws(() => parseOptions({ AMD_PIXAL3D_VERTEX_COLORS: '1', AMD_PIXAL3D_QUALITY: 'standard' }), /draft 512/);
 });
 
-test('Pixal3D E2E enables UV textures only for AMD single-view draft runs', () => {
+test('Pixal3D E2E enables draft UV and explicitly gated native Standard UV only for single view', () => {
   assert.deepEqual(parseOptions({ AMD_PIXAL3D_UV_TEXTURE: '1' }), { ...defaults, uvTexture: true });
   assert.deepEqual(parseOptions({ AMD_PIXAL3D_UV_TEXTURE: '1', AMD_PIXAL3D_BACKEND: 'windows-rocm' }), { ...defaults, uvTexture: true, backend: 'windows-rocm' });
+  assert.deepEqual(parseOptions({ AMD_PIXAL3D_UV_TEXTURE: '1', AMD_PIXAL3D_BACKEND: 'windows-rocm', AMD_PIXAL3D_QUALITY: 'standard' }), { ...defaults, uvTexture: true, backend: 'windows-rocm', quality: 'standard' });
   assert.throws(() => parseOptions({ AMD_PIXAL3D_UV_TEXTURE: '1', AMD_PIXAL3D_VERTEX_COLORS: '1' }), /cannot be combined/);
   assert.throws(() => parseOptions({ AMD_PIXAL3D_UV_TEXTURE: '1', AMD_PIXAL3D_VIEWS: 'multi' }), /single-view/);
-  assert.throws(() => parseOptions({ AMD_PIXAL3D_UV_TEXTURE: '1', AMD_PIXAL3D_BACKEND: 'windows-rocm', AMD_PIXAL3D_QUALITY: 'standard' }), /draft 512/);
+  assert.throws(() => parseOptions({ AMD_PIXAL3D_UV_TEXTURE: '1', AMD_PIXAL3D_QUALITY: 'standard' }), /draft 512/);
 });
 
 test('Pixal3D E2E selects the full 1024 profile explicitly', () => {

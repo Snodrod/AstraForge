@@ -11,6 +11,7 @@ const freezeCapabilities = (values) => Object.freeze({
   multi1024: false,
   uvTexture512: false,
   uvTexture1024: false,
+  uvTextureStandard1024: false,
   ...values,
 });
 

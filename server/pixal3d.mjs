@@ -44,10 +44,11 @@ function pixal3dRequestError(code, message, details = {}) {
 export function validatePixal3dRequest(input, cfg = pixal3dConfig(), { multi = !!input.viewSetId } = {}) {
   if (input.engine !== 'pixal3d') return;
   const texturing = !!(input.vertexColors || input.uvTexture);
+  const nativeStandardUv = cfg.backend === 'windows-rocm' && !multi && input.quality === 'standard' && input.uvTexture && !input.vertexColors;
   if (multi && texturing) {
     throw pixal3dRequestError('pixal3d_multiview_texturing_unsupported', 'Pixal3D vertex colors and UV textures currently require the single-view workflow.');
   }
-  if (texturing && input.quality !== 'draft') {
+  if (texturing && input.quality !== 'draft' && !nativeStandardUv) {
     throw pixal3dRequestError('pixal3d_texturing_requires_draft', 'Pixal3D texturing is verified only with draft 512 geometry. Select draft 512; the 1024 texturing combination is not verified.');
   }
   if (multi && ['wsl', 'windows-rocm'].includes(cfg.backend) && input.quality !== 'draft') {
@@ -57,7 +58,10 @@ export function validatePixal3dRequest(input, cfg = pixal3dConfig(), { multi = !
     if (input.vertexColors) {
       throw pixal3dRequestError('pixal3d_native_capability_unsupported', 'Native AMD vertex colors are not verified yet. Use the WSL backend or generate shape only.');
     }
-    const capability = input.uvTexture ? 'uvTexture1024' : input.quality === 'draft' ? (multi ? 'multi512' : 'single512') : (multi ? 'multi1024' : 'single1024');
+    if (nativeStandardUv && !cfg.nativeCapabilities?.single1024) {
+      throw pixal3dRequestError('pixal3d_native_not_ready', 'Native AMD Pixal3D is not verified for this workflow. Run the native probes or select the WSL backend.', { capability: 'single1024' });
+    }
+    const capability = nativeStandardUv ? 'uvTextureStandard1024' : input.uvTexture ? 'uvTexture1024' : input.quality === 'draft' ? (multi ? 'multi512' : 'single512') : (multi ? 'multi1024' : 'single1024');
     if (!cfg.nativeCapabilities?.[capability]) {
       throw pixal3dRequestError('pixal3d_native_not_ready', 'Native AMD Pixal3D is not verified for this workflow. Run the native probes or select the WSL backend.', { capability });
     }

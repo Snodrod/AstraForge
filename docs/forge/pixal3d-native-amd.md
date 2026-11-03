@@ -1,6 +1,6 @@
 # Pixal3D native Windows AMD backend
 
-Status as of 2026-11-03: **native single-view draft 512 shape, standard 1024 shape, and draft 512 geometry with a 1024 × 1024 UV atlas are verified on RX 9070 XT**. Other native workflows remain locked.
+Status as of 2026-11-04: **native single-view draft 512 shape, standard 1024 shape, draft 512 geometry with a 1024 × 1024 UV atlas, and standard 1024 geometry with a 1024 × 1024 UV atlas are verified on RX 9070 XT**. Other native workflows remain locked.
 
 This backend is a narrow native Windows path for AMD ROCm, not a universal GPU abstraction. It preserves the existing ComfyUI API, studio job flow and WSL fallback. It does not install or replace GPU drivers, remove WSL, change global Python or require a reboot.
 
@@ -24,16 +24,18 @@ Hardware: AMD Radeon RX 9070 XT, `gfx1201`, 17,095,983,104 bytes of reported dev
 | Single-view draft 512, shape | `6df4738b-404e-4129-8742-0dfe024dce51` | 182.4 s | 50,729 | 95,570 | 1,756,320 |
 | Single-view standard 1024, shape | `13ba0c81-211e-4c6d-9e43-fc7ec70f6f39` | 907.8 s | 330,358 | 660,712 | 11,893,576 |
 | Single-view draft 512, UV atlas 1024 × 1024 | `e603b707-4329-4a0d-b2f1-1bbc67625811` | 546.4 s | 60,079 | 96,090 | 3,736,252 |
+| Single-view standard 1024, UV atlas 1024 × 1024 | `eb4e1a32-a123-455c-aacf-86c4c2eef7b4` | 1,641.2 s | 335,153 | 660,226 | 15,616,676 |
 
-All three GLBs passed strict technical validation with no fallback events. Reports and artifacts:
+All four GLBs passed strict technical validation with no fallback events. Reports and artifacts:
 
 - Draft 512: `data/runtime/diagnostics/native-amd/512-single.json`, `data/runtime/amd-pixal3d-native-single.glb`.
 - Standard 1024: `data/runtime/diagnostics/native-amd/1024-single.json`, `data/runtime/amd-pixal3d-native-single-standard.glb`.
 - Draft 512 + UV 1024: `data/runtime/diagnostics/native-amd/512-single-uv1024.json`, `data/runtime/amd-pixal3d-native-single-uv1024.glb`.
+- Standard 1024 + UV 1024: `data/runtime/diagnostics/native-amd/1024-single-uv1024.json`, `data/runtime/amd-pixal3d-native-single-standard-uv1024.glb`.
 
-For standard 1024, the shape cascade took 623,249 ms, latent decode 12,841 ms, and mesh reconstruction 98,737 ms. For the UV run, texturing took 416,476 ms. The UV atlas was verified as a non-uniform 1024 × 1024 PNG with finite in-range UV coordinates. Four-view previews of both new outputs were visually inspected; these checks validate the pipeline and mesh bounds, not artistic quality or anatomy.
+For standard 1024 shape only, the shape cascade took 623,249 ms, latent decode 12,841 ms, and mesh reconstruction 98,737 ms. For draft UV, texturing took 416,476 ms. In the combined standard UV run, the shape cascade took 639,595 ms, latent decode 16,013 ms, mesh reconstruction 269,213 ms, and texturing 558,041 ms. Both UV runs produced a non-uniform 1024 × 1024 PNG with finite in-range UV coordinates. Four-view previews were visually inspected; the combined output had a coherent surface and texture without obvious corruption. These checks validate the pipeline and mesh bounds, not artistic quality or anatomy.
 
-`native-ready.json` enables `single512`, `single1024`, and `uvTexture1024` with links to their E2E evidence. `uvTexture1024` means draft-512 geometry with a 1024 × 1024 atlas; it does not enable standard-1024 geometry with texturing.
+`native-ready.json` enables `single512`, `single1024`, `uvTexture1024`, and `uvTextureStandard1024` with links to their E2E evidence. `uvTexture1024` means draft-512 geometry with a 1024 × 1024 atlas; `uvTextureStandard1024` separately enables standard-1024 geometry with a 1024 × 1024 atlas.
 
 ## CuMesh large-mesh fix
 
@@ -68,7 +70,7 @@ Focused numerical tests cover chunk-boundary equivalence, batched LSCM equivalen
 | Multi-view standard 1024 | locked / unsupported | unsupported on the verified 16 GB card |
 | UV texture 512 | locked | verified only for single-view draft 512 |
 | Single-view draft 512 geometry + UV atlas 1024 × 1024 | **verified** | unsupported |
-| Standard 1024 geometry + UV texture | locked / unsupported | unsupported |
+| Standard 1024 geometry + UV atlas 1024 × 1024 | **verified** | unsupported |
 
 An unverified native workflow still returns `pixal3d_native_not_ready`; it never silently falls back to WSL or CPU.
 
@@ -101,7 +103,7 @@ These are fallback references, not native performance claims:
 | Draft single-view 512 | 186.3 s | 10,048.65 MB |
 | Draft multi-view 512 | 184.0 s | 10,175.95 MB |
 
-Native standard 1024 now completes in 907.8 s (about 15 minutes), but this is not yet a comfortable or fast 1024 mode. The measurements establish successful bounded-memory execution, not a speedup, absence of micro-freezes, or multi-view capacity.
+Native standard 1024 shape only completes in 907.8 s (about 15 minutes); standard 1024 with UV 1024 completes in 1,641.2 s (about 27.4 minutes). Neither is yet a comfortable or fast 1024 mode. The measurements establish successful bounded-memory execution, not a speedup, absence of micro-freezes, or multi-view capacity.
 
 ## Cancellation and VRAM cleanup
 
@@ -115,21 +117,21 @@ These measurements verify cleanup relative to the native process baseline; they 
 ## Next gates
 
 1. Verify multi-view 512 and UV 512 independently; leave them locked until their own E2E checks pass.
-2. Keep multi-view 1024 and standard-1024 texturing locked until separately implemented and measured.
+2. Keep multi-view 1024 locked until separately implemented and measured.
 3. Profile end-to-end responsiveness and browser stability before claiming a freeze-free or comfortable 1024 workflow.
 
 ## Verification completed
 
-- Focused native/backend/UV Node tests: 55 tests, 53 passed, 2 conditional skips, 0 failures.
+- Focused native/backend/UV Node tests: 59 tests, 57 passed, 2 conditional skips, 0 failures.
 - Native installation and source-synchronization tests: passed.
 - Extension readiness contracts and CPU-reference attention parity: passed.
 - Large CuMesh round-trip and open-square fill: passed.
 - Direct/tiled O-Voxel cube, asymmetric, negative-AABB and rectangular topology checks: passed.
 - FlexGEMM chunking, batched LSCM, and weighted-sum focused tests: passed.
-- Native single-view 512, standard 1024, and draft 512 + UV 1024 E2E, GLB validation, and visual inspection: passed.
+- Native single-view 512, standard 1024, draft 512 + UV 1024, and standard 1024 + UV 1024 E2E, GLB validation, and visual inspection: passed.
 - Real cancellation, queue draining and post-cancellation VRAM cleanup: passed.
 - Full generation and post-run VRAM cleanup: passed.
 
 Logs are under `data/runtime/diagnostics/native-amd/`. The broad server suite was not rerun during this hardware-debugging pass.
 
-Implementation plans: `docs/superpowers/plans/2026-11-03-astraforge-native-amd-pixal3d.md` and `docs/superpowers/plans/2026-11-03-astraforge-native-1024-uv.md`.
+Implementation plans: `docs/superpowers/plans/2026-11-03-astraforge-native-amd-pixal3d.md`, `docs/superpowers/plans/2026-11-03-astraforge-native-1024-uv.md`, and `docs/superpowers/plans/2026-11-04-native-standard-1024-uv.md`.
