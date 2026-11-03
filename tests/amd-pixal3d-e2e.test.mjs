@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseOptions } from '../scripts/verify_amd_pixal3d_e2e.mjs';
 
-const defaults = { views: 'single', jobId: null, quality: 'draft', vertexColors: false, uvTexture: false, backend: 'wsl', outputDir: null, jsonFile: null };
+const defaults = { views: 'single', jobId: null, quality: 'draft', vertexColors: false, uvTexture: false, backend: 'wsl', outputDir: null, jsonFile: null, inputFile: null };
 
 test('Pixal3D E2E defaults to a resumable single-view WSL run', () => {
   assert.deepEqual(parseOptions({}), defaults);
@@ -39,6 +39,11 @@ test('Pixal3D E2E selects native AMD explicitly and accepts diagnostic destinati
   assert.equal(options.outputDir, 'out/native');
   assert.equal(options.jsonFile, 'out/native/report.json');
   assert.throws(() => parseOptions({ AMD_PIXAL3D_BACKEND: 'directml' }), /AMD_PIXAL3D_BACKEND/);
+});
+
+test('Pixal3D E2E accepts a custom input image only for single view', () => {
+  assert.deepEqual(parseOptions({ AMD_PIXAL3D_INPUT: 'assets/baton.png' }), { ...defaults, inputFile: 'assets/baton.png' });
+  assert.throws(() => parseOptions({ AMD_PIXAL3D_VIEWS: 'multi', AMD_PIXAL3D_INPUT: 'assets/baton.png' }), /single-view/);
 });
 
 test('Pixal3D E2E rejects an unknown view mode', () => {

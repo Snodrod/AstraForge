@@ -1,5 +1,5 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { deflateSync } from 'node:zlib';
 import { validateGeneratedMesh } from '../server/mesh-validation.mjs';
@@ -13,9 +13,11 @@ export function parseOptions(env = process.env) {
   const backend = env.AMD_PIXAL3D_BACKEND || 'wsl';
   const vertexColors = env.AMD_PIXAL3D_VERTEX_COLORS === '1';
   const uvTexture = env.AMD_PIXAL3D_UV_TEXTURE === '1';
+  const inputFile = env.AMD_PIXAL3D_INPUT || null;
   if (!['single', 'multi'].includes(views)) throw new Error('AMD_PIXAL3D_VIEWS must be single or multi.');
   if (!['draft', 'standard'].includes(quality)) throw new Error('AMD_PIXAL3D_QUALITY must be draft or standard.');
   if (!['wsl', 'windows-rocm'].includes(backend)) throw new Error('AMD_PIXAL3D_BACKEND must be wsl or windows-rocm.');
+  if (inputFile && views !== 'single') throw new Error('AMD Pixal3D custom input requires the single-view workflow.');
   if (vertexColors && views !== 'single') throw new Error('AMD Pixal3D vertex colors require the single-view workflow.');
   if (uvTexture && vertexColors) throw new Error('AMD Pixal3D UV texture and vertex colors cannot be combined.');
   if (uvTexture && views !== 'single') throw new Error('AMD Pixal3D UV texture requires the single-view workflow.');
@@ -24,7 +26,7 @@ export function parseOptions(env = process.env) {
   if (views === 'multi' && quality !== 'draft') throw new Error('AMD Pixal3D multi-view 1024 is unsupported on 16 GB and not verified on 24 GB. Use draft 512.');
   return {
     views, jobId: env.AMD_PIXAL3D_JOB_ID || null, quality, vertexColors, uvTexture, backend,
-    outputDir: env.AMD_PIXAL3D_OUTPUT_DIR || null, jsonFile: env.AMD_PIXAL3D_JSON || null,
+    outputDir: env.AMD_PIXAL3D_OUTPUT_DIR || null, jsonFile: env.AMD_PIXAL3D_JSON || null, inputFile,
   };
 }
 
@@ -114,8 +116,10 @@ async function uploadAsset(bytes, name) {
   return request('/api/assets', { method: 'POST', body: form });
 }
 
-async function createInput(views) {
-  const front = await uploadAsset(conceptPng('front'), `amd-pixal3d-${views}-front.png`);
+async function createInput(views, inputFile) {
+  const front = inputFile
+    ? await uploadAsset(readFileSync(inputFile), basename(inputFile))
+    : await uploadAsset(conceptPng('front'), `amd-pixal3d-${views}-front.png`);
   let viewSetId;
   if (views === 'multi') {
     const set = await request('/api/views', {
@@ -154,7 +158,7 @@ async function main() {
     if (!job) throw new Error(`Job not found: ${options.jobId}`);
     if (job.engine !== 'pixal3d') throw new Error(`Job ${job.id} is not a Pixal3D job.`);
   } else {
-    const input = await createInput(options.views);
+    const input = await createInput(options.views, options.inputFile);
     job = await request('/api/jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

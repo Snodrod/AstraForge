@@ -24,7 +24,7 @@ const env = {
   AMD_PIXAL3D_VIEWS: 'single',
   AMD_PIXAL3D_UV_TEXTURE: '1',
   AMD_PIXAL3D_VERTEX_COLORS: '0',
-  AMD_PIXAL3D_JSON: path.join(diagnostics, '1024-single-uv1024.json'),
+  AMD_PIXAL3D_JSON: process.env.AMD_PIXAL3D_JSON || path.join(diagnostics, '1024-single-uv1024.json'),
 };
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 let studio;
