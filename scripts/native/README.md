@@ -100,6 +100,14 @@ node scripts/native/run_native_standard_uv1024.mjs
 
 They write `512-single.json`, `1024-single.json`, `512-single-uv1024.json`, and `1024-single-uv1024.json` under `data/runtime/diagnostics/native-amd/`, with GLBs under `data/runtime/`. `AMD_PIXAL3D_OUTPUT_DIR` controls downloaded artifacts in the generic runner. Native multi-view and UV 512 requests remain locked. Generation reports retain the input, seed, backend, runtime versions and workflow identity so comparisons remain reproducible.
 
+Profile Standard 1024 + UV 1024 responsiveness in a separate process:
+
+```powershell
+node scripts/native/run_native_standard_uv1024_profile.mjs
+```
+
+The profiler uses ports `3214` and `8193`, preserves the original E2E report, and writes `1024-single-uv1024-profile.jsonl`, `1024-single-uv1024-profile.json`, and `1024-single-uv1024-profile-e2e.json`. It samples system CPU/RAM, native VRAM, job phase, and local studio heartbeat without external requests or production-code changes. The measured baseline had no studio heartbeat stall over 250 ms in 1,294 samples; three native `/system_stats` timeouts during surface rebuilding did not coincide with a studio API stall. This is not a graphics, driver, browser, or external-network freeze-free claim.
+
 Verify real cancellation and post-run cleanup separately:
 
 ```powershell

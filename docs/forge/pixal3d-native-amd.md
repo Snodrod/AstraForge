@@ -103,7 +103,17 @@ These are fallback references, not native performance claims:
 | Draft single-view 512 | 186.3 s | 10,048.65 MB |
 | Draft multi-view 512 | 184.0 s | 10,175.95 MB |
 
-Native standard 1024 shape only completes in 907.8 s (about 15 minutes); standard 1024 with UV 1024 completes in 1,641.2 s (about 27.4 minutes). Neither is yet a comfortable or fast 1024 mode. The measurements establish successful bounded-memory execution, not a speedup, absence of micro-freezes, or multi-view capacity.
+Native standard 1024 shape only completes in 907.8 s (about 15 minutes). Standard 1024 with UV 1024 took 1,641.2 s in the first run and 1,300.8 s in the profiling run. This variation and the phase timings establish bounded-memory execution, not a consistently fast, comfortable, or freeze-free workflow.
+
+## Responsiveness baseline
+
+`scripts/native/run_native_standard_uv1024_profile.mjs` monitors the real Standard 1024 + UV 1024 workflow from a separate process. It writes JSONL once per non-overlapping sample, including system CPU/RAM, native VRAM, job phase, and local studio heartbeat latency. It does not modify the studio or native engine and makes no external requests.
+
+Profiling job `8f5b627f-9b41-4a80-8dab-0229fb6db2dc` completed in 1,300.8 s with an accepted GLB and no fallback events. Across 1,294 samples, studio heartbeat p50 was 0.72 ms, p95 1.13 ms, and the post-startup maximum 9.97 ms. There were no heartbeat stalls over 250 ms or 1 s and no studio/job request errors.
+
+The native engine had 18 connection failures before its first successful stats response and three 2.5-second `/system_stats` timeouts during `Rebuilding the surface`. Studio heartbeat remained at or below 2.48 ms in those three samples. This isolates a brief native telemetry stall without evidence of a matching studio API stall. The largest monitor sampling gap was 3.518 s because the sampler awaited the bounded engine request.
+
+System-wide maxima were 95.31% CPU and 29,231 MiB RAM; reported device usage peaked at 12,431 MiB. CPU/RAM are not process-attributed. These results do not prove freeze-free graphics, drivers, browser rendering, or external networking, so no production performance change was made from this baseline alone. Evidence: `1024-single-uv1024-profile.jsonl`, `1024-single-uv1024-profile.json`, and `1024-single-uv1024-profile-e2e.json`.
 
 ## Cancellation and VRAM cleanup
 
@@ -118,20 +128,21 @@ These measurements verify cleanup relative to the native process baseline; they 
 
 1. Verify multi-view 512 and UV 512 independently; leave them locked until their own E2E checks pass.
 2. Keep multi-view 1024 locked until separately implemented and measured.
-3. Profile end-to-end responsiveness and browser stability before claiming a freeze-free or comfortable 1024 workflow.
+3. Add process-attributed and graphics/network measurements if user-visible stalls persist; the local heartbeat baseline alone cannot locate those stalls.
 
 ## Verification completed
 
-- Focused native/backend/UV Node tests: 59 tests, 57 passed, 2 conditional skips, 0 failures.
+- Focused native/backend/UV/monitor Node tests: 63 tests, 61 passed, 2 conditional skips, 0 failures.
 - Native installation and source-synchronization tests: passed.
 - Extension readiness contracts and CPU-reference attention parity: passed.
 - Large CuMesh round-trip and open-square fill: passed.
 - Direct/tiled O-Voxel cube, asymmetric, negative-AABB and rectangular topology checks: passed.
 - FlexGEMM chunking, batched LSCM, and weighted-sum focused tests: passed.
 - Native single-view 512, standard 1024, draft 512 + UV 1024, and standard 1024 + UV 1024 E2E, GLB validation, and visual inspection: passed.
+- Standard 1024 + UV 1024 responsiveness baseline: passed; no local studio heartbeat stall observed.
 - Real cancellation, queue draining and post-cancellation VRAM cleanup: passed.
 - Full generation and post-run VRAM cleanup: passed.
 
 Logs are under `data/runtime/diagnostics/native-amd/`. The broad server suite was not rerun during this hardware-debugging pass.
 
-Implementation plans: `docs/superpowers/plans/2026-11-03-astraforge-native-amd-pixal3d.md`, `docs/superpowers/plans/2026-11-03-astraforge-native-1024-uv.md`, and `docs/superpowers/plans/2026-11-04-native-standard-1024-uv.md`.
+Implementation plans: `docs/superpowers/plans/2026-11-03-astraforge-native-amd-pixal3d.md`, `docs/superpowers/plans/2026-11-03-astraforge-native-1024-uv.md`, `docs/superpowers/plans/2026-11-04-native-standard-1024-uv.md`, and `docs/superpowers/plans/2026-11-04-native-standard-uv-profiling.md`.
