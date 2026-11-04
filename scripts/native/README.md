@@ -134,6 +134,55 @@ Remove-Item Env:AMD_PIXAL3D_LIFECYCLE_MODE
 
 The lifecycle runner uses isolated local ports `3212` and `8192`, writes `512-cancel.json` or `512-complete-cleanup.json`, and shuts down its studio and native runtime. It checks that the queue drains and that Torch reserved VRAM returns to within 768 MiB of the pre-generation baseline. Temporary telemetry timeouts are recorded without cancelling the model job.
 
+## Experimental local A-pose with reusable identity-lock
+
+This experiment is separate from verified single-view capabilities and does not change `native-ready.json`. It requires the exact Qwen-Image-Edit-2509 Q4_K_M, FP8 Qwen2.5-VL text encoder, and Qwen VAE listed with sizes and SHA-256 hashes in `qwen-apose-assets.json`. Model files stay in the Git-ignored native runtime. Do not install drivers or substitute CUDA, WSL, CPU inference, Q3, or another editor.
+
+Configuration is split into three independent inputs under `scripts/native/identity/`:
+
+- `identity-lock.json`: shared invariants plus kind-specific character/building rules;
+- `preset-orc.json` or another object preset: identity features, inventory, asymmetry and view notes;
+- `negative-character.json`, `negative-building.json`, `negative-generic.json`, `negative-none.json` or a custom `--negative-file` JSON.
+
+Verify assets and the no-GPU contracts:
+
+```powershell
+python -m unittest scripts/native/test_qwen_apose_assets.py -v
+python scripts/native/verify_qwen_apose_assets.py --runtime-root runtime/ComfyUI-Pixal3D-AMD-Native
+node --test tests/native-identity-config.test.mjs tests/native-attempt-store.test.mjs tests/native-qwen-apose.test.mjs tests/native-multiview-orc.test.mjs tests/native-attempt-integration.test.mjs
+```
+
+Run stages sequentially. Every generation creates a new `attempts/attempt-NNN` with resolved prompts, seed, source/output SHA-256, workflow, timing and a pending `review.json`; previous attempts are not overwritten.
+
+```powershell
+node scripts/native/run_native_qwen_apose.mjs --input data/runtime/orc/views/raw/front.png --preset scripts/native/identity/preset-orc.json --negative-profile character --output data/runtime/orc-identity-v2
+```
+
+Inspect `<apose-attempt>/comparison.jpg` against the source. Reject changed facial features, profile inventions, duplicated equipment or replacement of asymmetric wrist coverings/boots. Record a real human decision:
+
+```powershell
+node scripts/native/review_native_attempt.mjs --attempt "<apose-attempt>" --status rejected --comment "Changed nose, chin, boots or asymmetric equipment"
+node scripts/native/review_native_attempt.mjs --attempt "<apose-attempt>" --status approved --comment "Checked face, tusks, hair, equipment sides, boots and duplicates against source"
+```
+
+Only an approved, unchanged A-pose attempt can generate views:
+
+```powershell
+node scripts/native/run_native_orc_multiview.mjs --stage views --input "<apose-attempt>" --preset scripts/native/identity/preset-orc.json --negative-profile character --output data/runtime/orc-views-v2 --coherent-front true
+node scripts/native/review_native_attempt.mjs --attempt "<views-attempt>" --status approved --comment "Checked all four views, profile, equipment sides and duplicates"
+```
+
+Only approved views can enter shape. Texture remains a separate stage after shape validation:
+
+```powershell
+node scripts/native/run_native_orc_multiview.mjs --stage shape --views "<views-attempt>" --output data/runtime/orc-shape-v2 --json data/runtime/diagnostics/native-amd/orc-shape-v2.json
+node scripts/native/run_native_orc_multiview.mjs --stage texture --profile light --views "<views-attempt>" --glb data/runtime/orc-shape-v2/amd-pixal3d-native-multiview-draft512.glb --output data/runtime/orc-shape-v2 --json data/runtime/diagnostics/native-amd/orc-texture-v2-light.json
+```
+
+The A-pose runner uses port 8196; the multi-view runner uses 8195. Both stop only their own process trees and request memory cleanup. `--coherent-front true` selects the MV-Adapter front from the same batch. A pending/rejected/missing review or any artifact hash change blocks the next stage before ComfyUI starts.
+
+Current status on 2026-11-04: the earlier Q4_K_M A-pose completed in 1865.4 seconds and MV-Adapter completed in 46 seconds, but visual inspection rejected them for facial redesign, a false profile wedge and symmetric replacement of distinct equipment. They are not approved for shape. The reusable resolver, immutable attempts, review CLI and approved-stage barriers are implemented and unit-tested; no new generation has yet been run through this revised mechanism.
+
 ## Tests
 
 ```powershell

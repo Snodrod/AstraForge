@@ -145,6 +145,24 @@ System-wide maxima were 95.31% CPU and 29,231 MiB RAM; reported device usage pea
 
 These measurements verify cleanup relative to the native process baseline; they do not claim zero allocator retention or provide an uninterrupted device-wide peak measurement.
 
+## Experimental local A-pose normalization: first images rejected
+
+The orc A-pose experiment uses local Qwen-Image-Edit-2509 Q4_K_M through ComfyUI-GGUF commit `6ea2651e7df66d7585f6ffee804b20e92fb38b8a`. The exact verified assets are recorded in `scripts/native/qwen-apose-assets.json`:
+
+| Asset | Bytes | SHA-256 |
+|---|---:|---|
+| `Qwen-Image-Edit-2509-Q4_K_M.gguf` | 13,065,746,976 | `08f27cdf3e760edef5136ab0afdb9d3ed7a2799bd730b8d5cd9ecb291d808425` |
+| `qwen_2.5_vl_7b_fp8_scaled.safetensors` | 9,384,670,680 | `cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4` |
+| `qwen_image_vae.safetensors` | 253,806,246 | `a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f` |
+
+All three downloaded files passed size and SHA-256 verification with `python scripts/native/verify_qwen_apose_assets.py --runtime-root runtime/ComfyUI-Pixal3D-AMD-Native`; no model substitution was made.
+
+The first completed Q4_K_M A-pose run used seed 42 and 40 steps and finished in 1865.4 seconds. MV-Adapter then produced four 512 × 512 views in 46 seconds with seed 21 and 30 steps; normalization took 6.7 seconds. These are generation timings, not a verified full 3D cycle.
+
+Visual comparison rejected the A-pose and views: the face/tusks/beard changed, distinct wrist coverings and boots became symmetric, the pauldron was redesigned, and side views invented a long facial wedge. No approved shape was produced from this set. The earlier interrupted log is not evidence of successful artistic acceptance.
+
+The revised mechanism now separates identity-lock, object preset and negative profiles; creates immutable attempts with SHA-256 manifests; provides comparison/contact sheets and a review CLI; and blocks views/shape until the preceding attempt is explicitly approved. Focused no-GPU tests cover these contracts. A new real generation through the revised mechanism has not yet been run, so artistic quality and the revised light E2E cycle remain unverified. No capability in `native-ready.json` was changed. Commands are in `scripts/native/README.md`; visual rules are in `docs/forge/views.md`.
+
 ## Next gates
 
 1. Verify multi-view 512 and UV 512 independently; leave them locked until their own E2E checks pass.

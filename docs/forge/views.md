@@ -129,6 +129,26 @@ An honest verdict on the sources for this character:
 - Left/right check (views supplied with the sides swapped): the model barely reacts to the swap (silhouettes and pouch stay in place), so a convention error would be hard to notice here;
   the convention was chosen by the model's view order (front, left, back, right: the camera circles the character counter-clockwise seen from above) and matches the MV-Adapter azimuths.
 
+## Experimental A-pose-first playbook with identity-lock
+
+A single dynamic concept should be normalized to a neutral full-body A-pose before four-view generation. A UV atlas cannot repair inconsistent anatomy or equipment between views. The asymmetric-pauldron rule always uses character-relative anatomy: the character's own right shoulder appears on the left side of a front image.
+
+Prompts are no longer global orc constants. `scripts/native/identity_config.mjs` composes them from independent JSON inputs:
+
+- `identity/identity-lock.json`: generic preservation rules, kind-specific character/building invariants and A-pose/views purposes;
+- `identity/preset-orc.json`: exact face/tusks/topknot, one right-shoulder pauldron, different wrist coverings, different boots and profile requirements;
+- `identity/negative-character.json`, `negative-building.json`, `negative-generic.json`, `negative-none.json` or a custom negative JSON.
+
+Character rules cannot leak into a building result: the resolver validates profile kind and tests cover this boundary. Negative prompts are auxiliary filters, not proof of identity. A-pose accepts only a character preset; the building example currently verifies resolver reuse, not A-pose for buildings.
+
+Each run creates an immutable attempt with `manifest.json` and pending `review.json`. The manifest records resolved prompts, JSON versions/paths, seed, timing, workflow and SHA-256 hashes. A-pose produces `comparison.jpg`; views produce `views-sheet.jpg`. Use `scripts/native/review_native_attempt.mjs` only after actual visual inspection.
+
+Reject A-pose or views for a changed nose/chin/jaw/tusks/hairline, a long invented facial wedge in profile, duplicate equipment, symmetric replacements for asymmetric items, wrong left/right orientation, extra limbs/fingers, cropped hands/feet, invented props, inconsistent scale, collage/text or segmentation holes. A valid PNG is not artistic acceptance.
+
+Use the MV-Adapter-generated front from the same batch as left/back/right (`--coherent-front true`). Do not silently mix views from different batches. Shape requires an approved views attempt and rechecks every normalized RGBA `views/norm/cut_*.png` hash; pending, rejected, missing or modified-after-review inputs stop before ComfyUI starts.
+
+The first orc A-pose/views set was visually rejected and remains unapproved. No prompt or metric can guarantee identity from one source image, so human review remains mandatory.
+
 ## Limitations
 
 - ChatGPT draws views rather than renders them: small discrepancies between views are possible (tunic length, fold positions). Hunyuan3D-2mv smooths them but does not fix them.

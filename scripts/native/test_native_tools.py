@@ -58,6 +58,12 @@ class NativePatchContractTests(unittest.TestCase):
         self.assertIn("elif not bake_on_vertices:", pipeline)
         self.assertIn("face_idx, bary, mask = _rasterize_uv_barycentric", pipeline)
         self.assertIn("image_cond_model.naf_tile_factor", pipeline)
+        texture_pipeline = pipeline.split("def texture_mesh_pixal3d", 1)[1]
+        multiview_branch = texture_pipeline.split("if views is not None:", 1)[1].split("else:", 1)[0]
+        self.assertIn(
+            "image_cond_model.naf_tile_factor = int(os.environ.get('ASTRA_AMD_NAF_TILE', '2'))",
+            multiview_branch,
+        )
 
     def test_active_cumesh_matches_source_and_uses_explicit_vertex_indices(self):
         native_root = HERE.parents[1] / "runtime" / "ComfyUI-Pixal3D-AMD-Native"
