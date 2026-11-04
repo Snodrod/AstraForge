@@ -2,7 +2,7 @@
 
 These tools build and probe an **isolated native Windows ROCm runtime**. They do not install or replace GPU drivers, change WSL, modify the NVIDIA runtime, or request a reboot.
 
-Current scope on RX 9070 XT: native single-view draft 512 shape, standard 1024 shape, draft 512 geometry with a 1024 × 1024 UV atlas, and standard 1024 geometry with a 1024 × 1024 UV atlas are verified. Multi-view and UV 512 remain locked. The base installer still installs only the Python/PyTorch HIP foundation; the complete ComfyUI/TRELLIS.2 runtime and model weights are separate readiness requirements.
+Current scope on RX 9070 XT: native single-view draft 512 shape, standard 1024 shape, draft 512 geometry with a 1024 × 1024 UV atlas, and standard 1024 geometry with a 1024 × 1024 UV atlas are verified. A separate texture-only baton experiment has also produced verified 2048 × 2048 and 4096 × 4096 base-color atlases without changing the 1024 denoiser or geometry; these larger atlases are not persistent production capabilities. Multi-view and UV 512 remain locked. The base installer still installs only the Python/PyTorch HIP foundation; the complete ComfyUI/TRELLIS.2 runtime and model weights are separate readiness requirements.
 
 ## Layout
 
@@ -71,11 +71,15 @@ Measured on 2026-11-03 and 2026-11-04 with `AMD Radeon RX 9070 XT`, `gfx1201`, 1
 - native single-view draft 512 shape E2E: pass in 182.4 seconds, with 50,729 vertices, 95,570 triangles and no fallback events;
 - native single-view standard 1024 shape E2E: pass in 907.8 seconds, with 330,358 vertices, 660,712 triangles and no fallback events;
 - native single-view draft 512 geometry with a 1024 × 1024 UV atlas: pass in 546.4 seconds, with 60,079 vertices, 96,090 triangles and no fallback events;
-- native single-view standard 1024 geometry with a 1024 × 1024 UV atlas: pass in 1,641.2 seconds, with 335,153 vertices, 660,226 triangles and no fallback events.
+- native single-view standard 1024 geometry with a 1024 × 1024 UV atlas: pass in 1,641.2 seconds, with 335,153 vertices, 660,226 triangles and no fallback events;
+- baton Standard 1024 geometry, denoiser 1024, exact 2048 × 2048 UV atlas: texture-only pass in 499.0 seconds, with 357,819 vertices, 662,201 triangles, a 22,138,764-byte GLB and no fallback events;
+- the same baton with an exact 4096 × 4096 UV atlas: texture-only pass in 382.4 seconds, with unchanged geometry, a 37,962,708-byte GLB and no fallback events.
 
-Reports: `data/runtime/diagnostics/native-amd/base-probe.json`, `cumesh-probe.log`, `o-voxel-tiled-probe.log`, `512-single.json`, `1024-single.json`, `512-single-uv1024.json`, and `1024-single-uv1024.json`.
+Reports: `data/runtime/diagnostics/native-amd/base-probe.json`, `cumesh-probe.log`, `o-voxel-tiled-probe.log`, `512-single.json`, `1024-single.json`, `512-single-uv1024.json`, `1024-single-uv1024.json`, `baton-uv2048.json`, and `baton-uv4096.json`.
 
 The standard-1024 shape-only result takes about 15 minutes; standard 1024 with UV 1024 takes about 27.4 minutes. These are correctness/memory-capacity gates, not claims of fast or freeze-free generation. UV 1024 refers to atlas resolution and is verified separately with draft-512 and standard-1024 single-view geometry.
+
+For the larger-atlas experiment, 2048 is the recommended size/quality balance and 4096 is the largest verified atlas for this baton. Four-view and atlas inspection found a small visible difference between them; backside/end stretching remains. VRAM telemetry was unavailable in these two runs, and their wall times must not be interpreted as proof that 4096 is faster. Production readiness and UV 1024 defaults remain unchanged.
 
 ## Reproducible runtime fixes
 
@@ -100,6 +104,17 @@ node scripts/native/run_native_standard_uv1024.mjs
 
 They write `512-single.json`, `1024-single.json`, `512-single-uv1024.json`, and `1024-single-uv1024.json` under `data/runtime/diagnostics/native-amd/`, with GLBs under `data/runtime/`. `AMD_PIXAL3D_OUTPUT_DIR` controls downloaded artifacts in the generic runner. Native multi-view and UV 512 requests remain locked. Generation reports retain the input, seed, backend, runtime versions and workflow identity so comparisons remain reproducible.
 
+Reproduce the isolated baton atlas experiment with `AMD_UV_SIZE=2048` or `4096`. This is a texture-only runner: it requires an existing accepted GLB, keeps denoiser resolution 1024, uses port 8194, and never starts the production studio. Run the sizes sequentially, not in parallel:
+
+```powershell
+$env:AMD_UV_SIZE = '2048' # repeat later with 4096 after inspecting the 2048 result
+$env:AMD_UV_INPUT = Join-Path $PWD 'data/assets/250bcec2-20af-4899-b954-0d706238aa6b.png'
+$env:AMD_UV_GLB = Join-Path $PWD 'data/runtime/baton/amd-pixal3d-native-single-standard-uv1024.glb'
+node scripts/native/run_native_uv_atlas.mjs
+```
+
+Outputs are `data/runtime/baton/amd-pixal3d-native-single-uv<SIZE>.glb` and `data/runtime/diagnostics/native-amd/baton-uv<SIZE>.json`. The runner applies `pixal3dEnv()` so `HF_HOME` and `TORCH_HOME` select the native patched NAF cache rather than the user cache. It validates exact embedded PNG dimensions, stops only its own native process, and does not modify `native-ready.json` or expose a persistent production profile.
+
 Profile Standard 1024 + UV 1024 responsiveness in a separate process:
 
 ```powershell
@@ -123,6 +138,7 @@ The lifecycle runner uses isolated local ports `3212` and `8192`, writes `512-ca
 
 ```powershell
 node --test tests/pixal3d-native-installer.test.mjs
+node --test tests/native-uv-atlas.test.mjs tests/pixal3d-native.test.mjs tests/pixal3d.test.mjs
 python -m unittest scripts/native/test_native_tools.py -v
 & "$native/python_embeded/python.exe" -I scripts/native/test_flex_gemm_chunking.py
 & "$native/python_embeded/python.exe" -I scripts/native/test_uv_lscm_batching.py

@@ -158,7 +158,9 @@ An explicit `windows-rocm` backend exists beside the unchanged NVIDIA `windows` 
 
 On 2026-11-03 native single-view draft 512 generation passed on RX 9070 XT / `gfx1201` with PyTorch `2.9.1+rocm7.2.1` and HIP `7.2.53211-158bd99533`. Job `9a99b3dd-f598-4474-b6ff-6b0fef843fe5` completed in 161.4 seconds with no fallback events; the validated 1,825,416-byte GLB contains 53,824 vertices and 98,233 triangles. Reports are `data/runtime/diagnostics/native-amd/512-single.json` and `data/runtime/diagnostics/native-amd/cumesh-probe.log`.
 
-Only native `single512` is enabled. Multi-view, 1024 and UV workflows remain locked behind `pixal3d_native_not_ready`. See `docs/forge/pixal3d-native-amd.md` and `scripts/native/README.md` for selection, rollback, installer and probe commands.
+Native `single512`, `single1024`, `uvTexture1024` (draft geometry), and `uvTextureStandard1024` are enabled by their own hardware evidence. Multi-view and other unverified native workflows remain locked behind `pixal3d_native_not_ready`. See `docs/forge/pixal3d-native-amd.md` and `scripts/native/README.md` for selection, rollback, installer and probe commands.
+
+A separate 2026-11-04 texture-only experiment reused an accepted Standard 1024 baton and kept denoiser resolution 1024, seed 42, and 12 Euler steps. Native AMD produced exact 2048 × 2048 and 4096 × 4096 embedded base-color PNGs in 499.0 s and 382.4 s respectively. The accepted GLBs are 22,138,764 and 37,962,708 bytes, each with 357,819 vertices, 662,201 triangles, and no fallback events. The visual difference between 2048 and 4096 was small; 2048 is the experimental size/quality balance and 4096 is the largest atlas verified for this object. VRAM telemetry was unavailable, and neither result unlocks a persistent production profile.
 
 Job results now also retain the selected backend, phase timings, fallback events and output geometry when supplied by the runner. The hardware E2E script accepts `AMD_PIXAL3D_BACKEND=wsl|windows-rocm`, `AMD_PIXAL3D_OUTPUT_DIR` and `AMD_PIXAL3D_JSON`; its default remains `wsl`.
 
@@ -176,7 +178,7 @@ Job results now also retain the selected backend, phase timings, fallback events
 - Cancel interrupts the job at a ComfyUI node boundary: it can take up to a minute for the engine to stop; the next job on the other engine waits for it.
 - One view is worse than four (0.90/0.71/0.87/0.74): the side and back are completed by inference. For a final character use views.
 - Checked on a humanoid in a T-pose (the test character) and on the deterministic RGBA test object used by the AMD hardware runner. Four-legged creatures were not checked.
-- Shape-only output remains the default and uses the existing studio painting steps. AMD vertex colors and UV base color are separate opt-in single-view draft alternatives. Multi-view texturing and 1024 geometry with either texturing mode are explicitly rejected. A 1024 atlas and normal/AO texture generation are not implemented as verified features.
+- Shape-only output remains the default and uses the existing studio painting steps. Native AMD has separately verified single-view UV 1024 with draft and standard geometry. A standalone baton experiment also verified UV 2048 and UV 4096, but these larger sizes are not persistent production options. Multi-view native texturing remains locked. Normal/AO texture generation is not implemented as a verified feature.
 
 ## Tests
 

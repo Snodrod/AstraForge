@@ -1,6 +1,6 @@
 # Pixal3D native Windows AMD backend
 
-Status as of 2026-11-04: **native single-view draft 512 shape, standard 1024 shape, draft 512 geometry with a 1024 × 1024 UV atlas, and standard 1024 geometry with a 1024 × 1024 UV atlas are verified on RX 9070 XT**. Other native workflows remain locked.
+Status as of 2026-11-04: **native single-view draft 512 shape, standard 1024 shape, draft 512 geometry with a 1024 × 1024 UV atlas, and standard 1024 geometry with a 1024 × 1024 UV atlas are verified on RX 9070 XT**. A separate texture-only baton experiment also passed with 2048 × 2048 and 4096 × 4096 atlases while retaining the 1024 denoiser and existing geometry. The larger atlases are not enabled as persistent production capabilities. Other native workflows remain locked.
 
 This backend is a narrow native Windows path for AMD ROCm, not a universal GPU abstraction. It preserves the existing ComfyUI API, studio job flow and WSL fallback. It does not install or replace GPU drivers, remove WSL, change global Python or require a reboot.
 
@@ -37,6 +37,25 @@ For standard 1024 shape only, the shape cascade took 623,249 ms, latent decode 1
 
 `native-ready.json` enables `single512`, `single1024`, `uvTexture1024`, and `uvTextureStandard1024` with links to their E2E evidence. `uvTexture1024` means draft-512 geometry with a 1024 × 1024 atlas; `uvTextureStandard1024` separately enables standard-1024 geometry with a 1024 × 1024 atlas.
 
+## Experimental UV atlas 2048 and 4096: verified
+
+On 2026-11-04, `scripts/native/run_native_uv_atlas.mjs` re-textured the accepted Standard 1024 baton without regenerating its geometry. The texture denoiser remained 1024; seed 42, 12 Euler steps, the source image, and native UV behavior were preserved. Only the final base-color `texture_size` changed. The standalone workflow used isolated port 8194 and did not alter production defaults or `native-ready.json`.
+
+| Experiment | Texture-only time | Exact embedded PNG | GLB bytes | Vertices | Triangles | Fallback |
+|---|---:|---|---:|---:|---:|---|
+| Baton UV 2048 | 499.0 s | 2048 × 2048 | 22,138,764 | 357,819 | 662,201 | `[]` |
+| Baton UV 4096 | 382.4 s | 4096 × 4096 | 37,962,708 | 357,819 | 662,201 | `[]` |
+
+Both GLBs passed strict UV/material/embedded-PNG validation, including exact PNG IHDR dimensions, and remained below the 100 MiB mesh limit. External rendering confirmed finite in-range UVs and non-uniform atlases. VRAM telemetry was unavailable (`vram: null`), so these two runs do not establish a peak-memory bound. The observed 4096 time was shorter in this warm sequence; it is not evidence that the larger atlas is inherently faster.
+
+Four-view previews and atlases were inspected. Crust and scoring were clearer than in the saved UV 1024 baton, while the normal-scale difference between 2048 and 4096 was small. Ends and the inferred back side still have stretching and blurred regions. Because the texture stage was rerun, the improvement over the saved 1024 result cannot be attributed only to atlas dimensions; increasing the atlas cannot restore detail absent from the 1024 denoiser output.
+
+Evidence: `data/runtime/diagnostics/native-amd/baton-uv2048.json`, `baton-uv4096.json`, `data/runtime/baton/amd-pixal3d-native-single-uv2048.glb`, and `amd-pixal3d-native-single-uv4096.glb`. External previews: `preview-renders/baton-uv2048.png`, `baton-uv4096.png`, the corresponding `-atlas.png` files, and `baton-uv-comparison.png`.
+
+The initial 2048 attempt failed before atlas creation with `No module named 'natten'`: the new runner had selected the user Torch cache rather than the native cache containing the patched NAF fallback. The runner now uses the same `pixal3dEnv()` construction as the production launcher, and `tests/native-uv-atlas.test.mjs` guards the runtime `HF_HOME` and `TORCH_HOME`. No NATTEN/CUDA package or fallback was installed.
+
+UV 2048 is the recommended experimental size/quality balance; UV 4096 is the largest verified atlas for this baton. UV 8192 and the node's formal 16384 maximum were not attempted. These results do not enable a persistent profile, prove universal AMD support, or establish freeze-free generation.
+
 ## CuMesh large-mesh fix
 
 The first native decoder failed because Windows HIP device-to-device copies stopped after 12 MiB, corrupting meshes larger than 1,048,576 packed three-component rows. `src/CuMesh/src/io.cu` now copies both input and output in 4 MiB chunks; the HIP source is generated from that file during the build. The reproducible source change is tracked as `scripts/native/patches/cumesh-large-mesh.patch` because `runtime/` is disposable and Git-ignored.
@@ -71,6 +90,8 @@ Focused numerical tests cover chunk-boundary equivalence, batched LSCM equivalen
 | UV texture 512 | locked | verified only for single-view draft 512 |
 | Single-view draft 512 geometry + UV atlas 1024 × 1024 | **verified** | unsupported |
 | Standard 1024 geometry + UV atlas 1024 × 1024 | **verified** | unsupported |
+| Existing Standard 1024 baton + UV atlas 2048 × 2048 | **verified experiment; not a persistent capability** | unsupported |
+| Existing Standard 1024 baton + UV atlas 4096 × 4096 | **verified experiment; not a persistent capability** | unsupported |
 
 An unverified native workflow still returns `pixal3d_native_not_ready`; it never silently falls back to WSL or CPU.
 
@@ -139,10 +160,12 @@ These measurements verify cleanup relative to the native process baseline; they 
 - Direct/tiled O-Voxel cube, asymmetric, negative-AABB and rectangular topology checks: passed.
 - FlexGEMM chunking, batched LSCM, and weighted-sum focused tests: passed.
 - Native single-view 512, standard 1024, draft 512 + UV 1024, and standard 1024 + UV 1024 E2E, GLB validation, and visual inspection: passed.
+- Baton UV 2048 and UV 4096 texture-only E2E, exact atlas validation, four-view rendering, and atlas inspection: passed.
+- UV atlas workflow/report/cache regression suite: 51 tests, 49 passed, 2 conditional skips, 0 failures.
 - Standard 1024 + UV 1024 responsiveness baseline: passed; no local studio heartbeat stall observed.
 - Real cancellation, queue draining and post-cancellation VRAM cleanup: passed.
 - Full generation and post-run VRAM cleanup: passed.
 
 Logs are under `data/runtime/diagnostics/native-amd/`. The broad server suite was not rerun during this hardware-debugging pass.
 
-Implementation plans: `docs/superpowers/plans/2026-11-03-astraforge-native-amd-pixal3d.md`, `docs/superpowers/plans/2026-11-03-astraforge-native-1024-uv.md`, `docs/superpowers/plans/2026-11-04-native-standard-1024-uv.md`, and `docs/superpowers/plans/2026-11-04-native-standard-uv-profiling.md`.
+Implementation plans: `docs/superpowers/plans/2026-11-03-astraforge-native-amd-pixal3d.md`, `docs/superpowers/plans/2026-11-03-astraforge-native-1024-uv.md`, `docs/superpowers/plans/2026-11-04-native-standard-1024-uv.md`, `docs/superpowers/plans/2026-11-04-native-standard-uv-profiling.md`, and `docs/superpowers/plans/2026-11-04-astraforge-amd-uv-atlas-2048-4096.md`.

@@ -1,6 +1,6 @@
 # Native AMD UV Atlas 2048–4096 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Re-texture the accepted baton GLB with a real 2048 × 2048 UV base-color atlas, then repeat at 4096 × 4096 without changing the 1024 denoiser or regenerating geometry.
 
@@ -31,7 +31,7 @@
 - Produces: `parseAtlasOptions(env)` returning `{ textureSize, inputImage, inputGlb, outputDir, jsonFile }`.
 - Produces: `buildUvAtlasWorkflow({ imageName, glbPath, textureSize, seed = 42 })` returning a ComfyUI prompt object.
 
-- [ ] **Step 1: Write failing workflow tests**
+- [x] **Step 1: Write failing workflow tests**
 
 ```js
 import test from 'node:test';
@@ -60,12 +60,12 @@ test('native UV experiment accepts only 2048 or 4096 and explicit existing paths
 });
 ```
 
-- [ ] **Step 2: Run the tests and verify RED**
+- [x] **Step 2: Run the tests and verify RED**
 
 Run: `node --test tests/native-uv-atlas.test.mjs`
 Expected: FAIL because `../scripts/native/uv_atlas_workflow.mjs` does not exist.
 
-- [ ] **Step 3: Implement the workflow builder**
+- [x] **Step 3: Implement the workflow builder**
 
 ```js
 export function parseAtlasOptions(env = process.env) {
@@ -108,7 +108,7 @@ export function buildUvAtlasWorkflow({ imageName, glbPath, textureSize, seed = 4
 }
 ```
 
-- [ ] **Step 4: Run workflow and existing native tests**
+- [x] **Step 4: Run workflow and existing native tests**
 
 Run: `node --test tests/native-uv-atlas.test.mjs tests/pixal3d-native.test.mjs tests/pixal3d.test.mjs`
 Expected: all tests pass; existing conditional skips remain allowed.
@@ -124,7 +124,7 @@ Expected: all tests pass; existing conditional skips remain allowed.
 - Uses: `buildNativePixal3DLaunch()`, `pixal3dConfig()`, `getPixal3DBackend()`, `normalizeGlb()`, and `validateGeneratedMesh()`.
 - Produces: `data/runtime/baton/amd-pixal3d-native-single-uv<SIZE>.glb` and `data/runtime/diagnostics/native-amd/baton-uv<SIZE>.json`.
 
-- [ ] **Step 1: Add a failing report-contract test**
+- [x] **Step 1: Add a failing report-contract test**
 
 Export a pure `buildUvAtlasReport({ textureSize, started, glbPath, normalized, validation, vram, now })` helper from the runner. Guard `main()` so importing the runner in a test cannot start ComfyUI or submit GPU work. Test the actual helper, not a literal object:
 
@@ -150,12 +150,12 @@ Hardware acceptance is separately proven by the runner calling:
 validateGeneratedMesh(normalized.buffer, { requireUvTexture: true, expectedUvTextureSize: options.textureSize });
 ```
 
-- [ ] **Step 2: Run the test file and verify RED**
+- [x] **Step 2: Run the test file and verify RED**
 
 Run: `node --test tests/native-uv-atlas.test.mjs`
 Expected: FAIL because the runner and its exported report helper do not exist yet. No ComfyUI process or GPU job may start during this import.
 
-- [ ] **Step 3: Implement the runner**
+- [x] **Step 3: Implement the runner**
 
 Create `scripts/native/run_native_uv_atlas.mjs` with these exact operations and no production-server startup:
 
@@ -260,7 +260,7 @@ async function main() {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
 ```
 
-- [ ] **Step 4: Run static verification**
+- [x] **Step 4: Run static verification**
 
 Run: `node --check scripts/native/run_native_uv_atlas.mjs && node --test tests/native-uv-atlas.test.mjs tests/pixal3d-native.test.mjs tests/pixal3d.test.mjs`
 Expected: syntax check exits 0 and all applicable tests pass.
@@ -273,11 +273,11 @@ Expected: syntax check exits 0 and all applicable tests pass.
 - Create at runtime: `preview-renders/baton-uv2048.png`
 - Create at runtime: `preview-renders/baton-uv2048-atlas.png`
 
-- [ ] **Step 1: Confirm no active native job**
+- [x] **Step 1: Confirm no active native job**
 
 Run the existing process/job inspection used for native validation. Expected: no active Pixal3D job and no process bound to port 8194.
 
-- [ ] **Step 2: Run exactly one UV 2048 job**
+- [x] **Step 2: Run exactly one UV 2048 job**
 
 ```bash
 AMD_UV_SIZE=2048 \
@@ -288,7 +288,7 @@ node scripts/native/run_native_uv_atlas.mjs
 
 Expected: `validation.accepted=true`, `denoiserResolution=1024`, `textureSize=2048`, and `fallbackEvents=[]`.
 
-- [ ] **Step 3: Render and inspect**
+- [x] **Step 3: Render and inspect**
 
 ```bash
 python render_native_result_preview.py \
@@ -307,11 +307,11 @@ Expected: preview tool reports atlas dimensions `[2048, 2048]`; inspect four vie
 - Create at runtime: `preview-renders/baton-uv4096.png`
 - Create at runtime: `preview-renders/baton-uv4096-atlas.png`
 
-- [ ] **Step 1: Run UV 4096 only after UV 2048 passes**
+- [x] **Step 1: Run UV 4096 only after UV 2048 passes**
 
 Use the Task 3 command with `AMD_UV_SIZE=4096`. Expected: exact 4096 atlas, accepted GLB below 100 MiB, no fallback.
 
-- [ ] **Step 2: Render and compare all three atlas sizes**
+- [x] **Step 2: Render and compare all three atlas sizes**
 
 ```bash
 python render_native_result_preview.py \
@@ -322,7 +322,7 @@ python render_native_result_preview.py \
 
 Expected: preview tool reports `[4096, 4096]`. Compare 1024, 2048, and 4096 for crust detail, scoring, backside/ends, stretching, color shift, and seams. Do not claim added detail solely from atlas size.
 
-- [ ] **Step 3: Final verification and delivery**
+- [x] **Step 3: Final verification and delivery**
 
 Run: `git diff --check && git status --short`
 Expected: no whitespace errors; installer remains untracked and is never staged. Deliver GLB, atlas, preview, JSON, measured time, GLB size, and remaining visual limitations. Leave implementation uncommitted until the user explicitly requests a commit.
