@@ -488,7 +488,7 @@ export function buildQwenAposeWorkflow({ image, seed = 42, steps = 40, prompt, n
     '6': { class_type: 'VAEEncode', inputs: { pixels: ['5', 0], vae: ['3', 0] } },
     '7': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { clip: ['2', 0], vae: ['3', 0], image1: ['5', 0], prompt } },
     '8': { class_type: 'TextEncodeQwenImageEditPlus', inputs: { clip: ['2', 0], vae: ['3', 0], image1: ['5', 0], prompt: negative } },
-    '9': { class_type: 'ModelSamplingAuraFlow', inputs: { model: ['9', 0], shift: 3 } },
+    '9': { class_type: 'ModelSamplingAuraFlow', inputs: { model: ['1', 0], shift: 3 } },
     '10': { class_type: 'CFGNorm', inputs: { model: ['9', 0], strength: 1 } },
     '11': { class_type: 'KSampler', inputs: { model: ['10', 0], positive: ['7', 0], negative: ['8', 0], latent_image: ['6', 0], seed, steps, cfg: 4, sampler_name: 'euler', scheduler: 'simple', denoise: 1 } },
     '12': { class_type: 'VAEDecode', inputs: { samples: ['11', 0], vae: ['3', 0] } },

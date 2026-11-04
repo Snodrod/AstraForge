@@ -10,6 +10,7 @@ test('Qwen workflow preserves Q4 nodes and uses only resolved prompts', () => {
   assert.equal(graph['6'].class_type, 'VAEEncode');
   assert.equal(graph['7'].inputs.prompt, 'LOCK POSITIVE');
   assert.equal(graph['8'].inputs.prompt, 'LOCK NEGATIVE');
+  assert.deepEqual(graph['9'].inputs.model, ['1', 0]);
   assert.equal(graph['11'].inputs.denoise, 1);
   assert.deepEqual(graph['11'].inputs.latent_image, ['6', 0]);
   assert.throws(() => buildQwenAposeWorkflow({ image: 'orc.png' }), /prompt and negative/);

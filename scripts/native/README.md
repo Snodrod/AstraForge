@@ -181,7 +181,7 @@ node scripts/native/run_native_orc_multiview.mjs --stage texture --profile light
 
 The A-pose runner uses port 8196; the multi-view runner uses 8195. Both stop only their own process trees and request memory cleanup. `--coherent-front true` selects the MV-Adapter front from the same batch. A pending/rejected/missing review or any artifact hash change blocks the next stage before ComfyUI starts.
 
-Current status on 2026-11-04: the earlier Q4_K_M A-pose completed in 1865.4 seconds and MV-Adapter completed in 46 seconds, but visual inspection rejected them for facial redesign, a false profile wedge and symmetric replacement of distinct equipment. They are not approved for shape. The reusable resolver, immutable attempts, review CLI and approved-stage barriers are implemented and unit-tested; no new generation has yet been run through this revised mechanism.
+Current status on 2026-11-04: the earlier Q4_K_M A-pose completed in 1865.4 seconds and MV-Adapter completed in 46 seconds, but visual inspection rejected them for facial redesign, a false profile wedge and symmetric replacement of distinct equipment. The revised `attempt-002` A-pose completed in 2081 seconds and was explicitly approved by the user as a working result despite its simplified equipment. The next required improvement is a preservation mask for the pauldron, distinct wrist coverings, boots and defining features: only the body pose may change inside the editable region, while protected source elements must not be repainted. The reusable resolver, immutable attempts, review CLI and approved-stage barriers are implemented and unit-tested.
 
 ## Tests
 
