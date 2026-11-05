@@ -111,6 +111,15 @@ try {
   Assert ($text.Contains('.shapeReady')) 'installer must require shape-ready HIP extensions'
   Assert (!$text.Contains("'native-ready.json'")) 'installer must not unlock the production generation gate'
   Assert ($text -notmatch '(?ms)if \(\(Test-Path -LiteralPath \$baseMarker\) -and !\$ForceProbe\) \{\s*Invoke-NativeProbe\s*return\s*\}') 'an existing base marker must not skip extension installation'
+
+  $releaseBuilder = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\installer\build-release.ps1') -Raw
+  Assert ($releaseBuilder.Contains("'verification'")) 'release builder must exclude visual verification artifacts'
+  Assert ($releaseBuilder.Contains("'AstraForge-Setup-*.exe'")) 'release builder must exclude recursive Setup executables'
+  $package = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\package.json') -Raw | ConvertFrom-Json
+  $packageLock = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\package-lock.json') -Raw
+  Assert ($package.version -eq '0.3.0-amd.1') 'native AMD release package version'
+  Assert ($packageLock -match '(?m)^  "version": "0\.3\.0-amd\.1",\r?$') 'native AMD release lock version'
+  Assert ($packageLock -match '(?ms)^    "": \{\r?\n      "name": "astraforge-local",\r?\n      "version": "0\.3\.0-amd\.1",') 'native AMD release root lock package version'
   Write-Host 'Native AMD installer unit tests passed'
 } finally {
   Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue

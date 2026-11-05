@@ -1,6 +1,6 @@
 {
   "name": "astraforge-local",
-  "version": "0.3.0",
+  "version": "0.3.0-amd.1",
   "private": true,
   "type": "module",
   "scripts": {
