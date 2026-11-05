@@ -2,7 +2,7 @@
 
 These tools build and probe an **isolated native Windows ROCm runtime**. They do not install or replace GPU drivers, change WSL, modify the NVIDIA runtime, or request a reboot.
 
-Current scope on RX 9070 XT: native single-view draft 512 shape, standard 1024 shape, draft 512 geometry with a 1024 × 1024 UV atlas, and standard 1024 geometry with a 1024 × 1024 UV atlas are verified. A separate texture-only baton experiment has also produced verified 2048 × 2048 and 4096 × 4096 base-color atlases without changing the 1024 denoiser or geometry; these larger atlases are not persistent production capabilities. Multi-view and UV 512 remain locked. The base installer still installs only the Python/PyTorch HIP foundation; the complete ComfyUI/TRELLIS.2 runtime and model weights are separate readiness requirements.
+Current scope on RX 9070 XT: native single-view draft 512 shape, standard 1024 shape, draft 512 geometry with a 1024 × 1024 UV atlas, and standard 1024 geometry with a 1024 × 1024 UV atlas are verified. The approved four-view orc attempt has also produced a visually reviewed draft 512 shape without a texture atlas; this does not unlock generic multi-view UV. A separate texture-only baton experiment has also produced verified 2048 × 2048 and 4096 × 4096 base-color atlases without changing the 1024 denoiser or geometry; these larger atlases are not persistent production capabilities. Generic multi-view UV and UV 512 remain locked. The base installer still installs only the Python/PyTorch HIP foundation; the complete ComfyUI/TRELLIS.2 runtime and model weights are separate readiness requirements.
 
 ## Layout
 
@@ -88,7 +88,7 @@ Because `runtime/` is Git-ignored, each installed source correction has a tracke
 - `cumesh-large-mesh.patch` — 4 MiB input/output copies avoid the Windows HIP 12 MiB device-copy failure.
 - `o-voxel-tiled-faces.patch` — centroid ownership and an inclusive outer boundary remove duplicate tiled faces without a global face sort.
 - `flex-gemm-explicit-chunking.patch` — 512 MiB `im2col` chunks avoid the 23 GiB standard-1024 and 8.95 GiB UV allocation failures.
-- `lscm-batched-solve.patch` — GPU LSCM solves in batches of 16 avoid the failing large `hipblasDgetrfBatched` call.
+- `lscm-batched-solve.patch` — GPU LSCM solves one chart per `hipblasDgetrfBatched` call; batch 16 still failed with `HIPBLAS_STATUS_ALLOC_FAILED` on the 119,999-triangle orc.
 - `flex-gemm-weighted-sum.patch` — equivalent PyTorch GPU operations replace the unavailable Windows/Triton weighted-sum kernel.
 
 ## Hardware-runner reports
@@ -102,7 +102,7 @@ node scripts/native/run_native_uv1024.mjs
 node scripts/native/run_native_standard_uv1024.mjs
 ```
 
-They write `512-single.json`, `1024-single.json`, `512-single-uv1024.json`, and `1024-single-uv1024.json` under `data/runtime/diagnostics/native-amd/`, with GLBs under `data/runtime/`. `AMD_PIXAL3D_OUTPUT_DIR` controls downloaded artifacts in the generic runner. Native multi-view and UV 512 requests remain locked. Generation reports retain the input, seed, backend, runtime versions and workflow identity so comparisons remain reproducible.
+They write `512-single.json`, `1024-single.json`, `512-single-uv1024.json`, and `1024-single-uv1024.json` under `data/runtime/diagnostics/native-amd/`, with GLBs under `data/runtime/`. `AMD_PIXAL3D_OUTPUT_DIR` controls downloaded artifacts in the generic runner. The dedicated reviewed orc workflow supports multi-view draft 512 shape; generic multi-view UV and UV 512 requests remain locked. Generation reports retain the input, seed, backend, runtime versions and workflow identity so comparisons remain reproducible.
 
 Reproduce the isolated baton atlas experiment with `AMD_UV_SIZE=2048` or `4096`. This is a texture-only runner: it requires an existing accepted GLB, keeps denoiser resolution 1024, uses port 8194, and never starts the production studio. Run the sizes sequentially, not in parallel:
 
@@ -182,6 +182,32 @@ node scripts/native/run_native_orc_multiview.mjs --stage texture --profile light
 The A-pose runner uses port 8196; the multi-view runner uses 8195. Both stop only their own process trees and request memory cleanup. `--coherent-front true` selects the MV-Adapter front from the same batch. A pending/rejected/missing review or any artifact hash change blocks the next stage before ComfyUI starts.
 
 Current status on 2026-11-04: the earlier Q4_K_M A-pose completed in 1865.4 seconds and MV-Adapter completed in 46 seconds, but visual inspection rejected them for facial redesign, a false profile wedge and symmetric replacement of distinct equipment. The revised `attempt-002` A-pose completed in 2081 seconds and was explicitly approved by the user as a working result despite its simplified equipment. The next required improvement is a preservation mask for the pauldron, distinct wrist coverings, boots and defining features: only the body pose may change inside the editable region, while protected source elements must not be repainted. The reusable resolver, immutable attempts, review CLI and approved-stage barriers are implemented and unit-tested.
+
+## Masked belt repair for orc views
+
+The repair runner preserves `orc-views-v2/attempts/attempt-002` outside explicit waist/artifact masks. It never runs shape or texture and always creates a separate attempt under `orc-views-repair`.
+
+Prepare and inspect masks without GPU or a system-RAM barrier:
+
+```powershell
+node scripts/native/run_native_belt_repair.mjs --input data/runtime/orc-views-v2/attempts/attempt-002 --output data/runtime/orc-views-repair --prepare-only true
+```
+
+A full donor run requires at least 12 GiB free system RAM. The guard runs before creating an attempt or starting ComfyUI:
+
+```powershell
+node scripts/native/run_native_belt_repair.mjs --input data/runtime/orc-views-v2/attempts/attempt-002 --output data/runtime/orc-views-repair --debug true
+```
+
+The runner rejects byte-identical donor views before compositing. The shortened prompt keeps the belt instructions inside the CLIP limit, and MV-Adapter cleanup no longer moves the whole pipeline back to CPU RAM. `attempt-003` produced RGB noise and was rejected. Controlled `attempt-004` completed in 84.8 seconds with four distinct views and no monitored engine stalls over 250 ms, but RAM again peaked at 31.83 GB. Front/back are coherent and pixels outside masks are preserved; its side views still had rigid waist protrusions.
+
+For CPU-only cleanup of those protrusions, `belt-cleanup-orc.json` enables `backgroundOnly`: no donor is read or reapplied, front/back remain byte-identical, and only `backgroundMasks` on left/right are replaced with the source background color. `backgroundFeatherPx` is independent from the donor `featherPx`. Reproduce the composite stage with an existing prepared attempt:
+
+```powershell
+runtime/ComfyUI-Pixal3D-AMD-Native/python_embeded/python.exe -I scripts/native/belt_repair.py composite --source data/runtime/orc-views-repair/attempts/attempt-004/views --donor data/runtime/orc-views-repair/attempts/attempt-004/donor-views --output "<new-cleanup-attempt>" --config scripts/native/identity/belt-cleanup-orc.json
+```
+
+`orc-manual-edit/attempts/attempt-001` is approved: the user edited only `left.png` in Paint and then accepted all four views. All images remain 512×512, front/back/right are unchanged from cleanup attempt-005, and original/edited SHA-256 hashes are recorded in the success manifest. Draft 512 shape completed in 266.1 seconds: `data/runtime/orc-shape-manual/amd-pixal3d-native-multiview-draft512.glb` is 12,599,596 bytes with 351,538 vertices and 698,367 triangles, accepted technical validation and no fallback events. The original GLB was loaded into the `orc-shape-review` Edit3D project and visually inspected from four views; it has no UV texture or vertex colors, and artistic acceptance is still separate. Texture has not run. Report: `data/runtime/diagnostics/native-amd/orc-shape-manual.json`.
 
 ## Tests
 

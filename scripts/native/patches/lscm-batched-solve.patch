@@ -6,7 +6,7 @@ index 383d21d..58c721f 100644
  from . import mesh as _mesh
  
  LSCM_BATCH_MAX_VERTS = 256      # charts above this solve per-chart sparse (lscm_chart)
-+LSCM_SOLVE_BATCH_SIZE = 16
++LSCM_SOLVE_BATCH_SIZE = 1
 +
 +
 +def _solve_batched(AtA: Tensor, Atb: Tensor) -> Tensor:

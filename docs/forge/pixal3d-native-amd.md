@@ -74,7 +74,7 @@ The initial standard-1024 run required a 23 GiB explicit-GEMM `im2col` buffer, e
 
 Native UV processing exposed two additional Windows/ROCm issues:
 
-- `scripts/native/patches/lscm-batched-solve.patch` keeps LSCM on the GPU but solves systems in batches of 16, avoiding the failing single large `hipblasDgetrfBatched` call.
+- `scripts/native/patches/lscm-batched-solve.patch` keeps LSCM on the GPU but solves one chart per `hipblasDgetrfBatched` call. The earlier batch-16 version still failed with `HIPBLAS_STATUS_ALLOC_FAILED` on the 119,999-triangle orc; single-chart numerical and synthetic ROCm probes pass.
 - `scripts/native/patches/flex-gemm-weighted-sum.patch` replaces the unavailable Windows/Triton weighted-sum kernel with equivalent PyTorch GPU indexing, multiplication, and reduction.
 
 Focused numerical tests cover chunk-boundary equivalence, batched LSCM equivalence, and weighted-sum values and gradients.

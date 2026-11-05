@@ -13,7 +13,9 @@ test('identity-lock is shared while object and negative profiles stay independen
   const apose = resolveIdentityConfig({ identityRoot, presetFile: orc, negativeProfile: 'character', purpose: 'apose' });
   const views = resolveIdentityConfig({ identityRoot, presetFile: orc, negativeProfile: 'character', purpose: 'views' });
   assert.match(apose.prompt, /Change only the body pose, camera view and framing/);
-  assert.match(views.prompt, /Change only the body pose, camera view and framing/);
+  assert.equal(views.prompt, views.preset.viewsPrompt);
+  assert.ok(views.prompt.length < 500);
+  assert.match(views.prompt, /short broad nose/);
   assert.match(apose.prompt, /Do not redesign the nose, chin, jaw, eyes, ears/);
   assert.match(apose.prompt, /character's own RIGHT shoulder/);
   assert.match(apose.negative, /extra arms/);

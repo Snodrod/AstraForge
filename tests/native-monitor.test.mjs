@@ -89,3 +89,36 @@ test('native monitor never overlaps samples and preserves JSONL evidence', async
   assert.equal(JSON.parse(lines[0]).phase, 'test');
   assert.equal(JSON.parse(readFileSync(summaryFile, 'utf8')).samples, calls);
 });
+
+test('native monitor supports standalone ComfyUI without fabricated studio health', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'astra-engine-monitor-'));
+  const jsonlFile = path.join(dir, 'samples.jsonl');
+  const summaryFile = path.join(dir, 'summary.json');
+  const urls = [];
+  const monitor = createNativeMonitor({
+    engineUrl: 'http://127.0.0.1:8195', jsonlFile, summaryFile, intervalMs: 1,
+    fetchFn: async (url) => {
+      urls.push(url);
+      return {
+        ok: true, status: 200,
+        json: async () => ({
+          devices: [{ vram_total: 16 * 1024 ** 3, vram_free: 8 * 1024 ** 3 }],
+          queue_running: [{}], queue_pending: [],
+        }),
+      };
+    },
+  });
+  await monitor.start();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  const summary = await monitor.stop();
+  assert.ok(urls.length > 0);
+  assert.ok(urls.every((url) => url === 'http://127.0.0.1:8195/system_stats'));
+  const sample = JSON.parse(readFileSync(jsonlFile, 'utf8').trim().split('\n')[0]);
+  assert.equal(sample.postReady, true);
+  assert.equal(sample.studio, null);
+  assert.equal(sample.jobError, null);
+  assert.equal(sample.engine.deviceUsedMb, 8192);
+  assert.ok(summary.postReadySamples > 0);
+  assert.ok(summary.engineLatencyMs.max >= 0);
+  assert.equal(summary.maxDeviceUsedMb, 8192);
+});

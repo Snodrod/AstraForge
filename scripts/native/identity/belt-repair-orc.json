@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "seed": 42,
+  "featherPx": 8,
+  "prompt": "Green orc, same source face and equipment, coherent full-body orthographic A-pose views. One continuous brown leather waist belt with one small rectangular buckle and a short loose end lying flat against the waist. Preserve left/right asymmetry. Plain gray background.",
+  "negative": "sword, blade, dagger, knife, scabbard, sheath, weapon hilt, weapon, held prop, protruding waist object, second belt, duplicate belt, duplicate buckle, displaced belt, diagonal waist strap, extra arms, extra legs, duplicate equipment, duplicate pauldron, second pauldron, changed face, cropped figure, multiple characters, watermark, text, blurry, noisy",
+  "masks": {
+    "front": [
+      [0.34, 0.39, 0.64, 0.58]
+    ],
+    "left": [
+      [0.30, 0.40, 0.50, 0.56],
+      [0.43, 0.38, 0.67, 0.50]
+    ],
+    "back": [
+      [0.34, 0.39, 0.66, 0.59]
+    ],
+    "right": [
+      [0.48, 0.40, 0.70, 0.56],
+      [0.33, 0.38, 0.57, 0.50]
+    ]
+  }
+}

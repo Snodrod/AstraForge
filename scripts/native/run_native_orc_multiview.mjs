@@ -10,6 +10,7 @@ import { validateGeneratedMesh } from '../../server/mesh-validation.mjs';
 import { views_generate } from '../views/views_generate.mjs';
 import { buildOrcShapeWorkflow, buildOrcTextureWorkflow, parseOrcOptions } from './multiview_orc_workflow.mjs';
 import { resolveIdentityConfig } from './identity_config.mjs';
+import { createNativeMonitor } from './native_monitor.mjs';
 import { assertApprovedAttempt, createAttempt, sha256File, writeManifest } from './attempt_store.mjs';
 
 const moduleFile = fileURLToPath(import.meta.url);
@@ -49,6 +50,12 @@ export function buildOrcReport({ stage, started, now = Date.now(), glbPath, norm
     vram,
     fallbackEvents: [],
   };
+}
+
+export function resolveOrcTextureProfile(profile) {
+  if (profile === 'light') return { textureSize: 1024, textureSteps: 4, lighten: true };
+  if (profile === 'balanced') return { textureSize: 1024, textureSteps: 4, lighten: false };
+  return { textureSize: 2048, textureSteps: 12, lighten: false };
 }
 
 async function json(route, init) {
@@ -115,10 +122,9 @@ async function main() {
 
   const outputDir = path.resolve(options.outputDir || path.join(root, 'data', 'runtime', 'identity-multiview-output'));
   if (options.stage !== 'views') mkdirSync(outputDir, { recursive: true });
-  const textureSize = options.profile === 'light' ? 1024 : 2048;
-  const textureSteps = options.profile === 'light' ? 4 : 12;
+  const { textureSize, textureSteps, lighten } = resolveOrcTextureProfile(options.profile);
   let textureInputGlb = options.inputGlb ? path.resolve(options.inputGlb) : null;
-  if (options.stage === 'texture' && options.profile === 'light') {
+  if (options.stage === 'texture' && lighten) {
     const lightGlb = path.join(outputDir, 'amd-pixal3d-native-multiview-light-shape.glb');
     console.error('· Lightening Draft 512 to at most 120000 triangles');
     const result = spawnSync(
@@ -132,7 +138,7 @@ async function main() {
   const diagnostics = path.join(root, 'data', 'runtime', 'diagnostics', 'native-amd');
   mkdirSync(diagnostics, { recursive: true });
   const runId = attempt?.id || approvedViews?.manifest.id || 'native';
-  const runName = `orc-${options.stage}-${runId}${options.profile === 'light' ? '-light' : ''}`;
+  const runName = `orc-${options.stage}-${runId}${options.profile === 'quality' ? '' : `-${options.profile}`}`;
   const env = {
     ...process.env,
     ASTRA_PIXAL3D_BACKEND: 'windows-rocm',
@@ -150,6 +156,12 @@ async function main() {
     env: pixal3dEnv(config, env),
   });
   const logFile = path.join(diagnostics, `${runName}-server.log`);
+  const monitor = options.debug ? createNativeMonitor({
+    engineUrl: url,
+    jsonlFile: path.join(diagnostics, `${runName}-debug.jsonl`),
+    summaryFile: path.join(diagnostics, `${runName}-debug.json`),
+  }) : null;
+  if (monitor) await monitor.start();
   const fd = openSync(logFile, 'a');
   const child = spawn(launch.command, launch.args, {
     cwd: launch.cwd, env: launch.env, windowsHide: true, stdio: ['ignore', fd, fd],
@@ -267,6 +279,13 @@ async function main() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ unload_models: true, free_memory: true }),
     }).catch(() => {});
+    if (monitor) {
+      const summary = await monitor.stop().catch((error) => {
+        console.error('· Native debug monitor failed:', error.message);
+        return null;
+      });
+      if (summary) console.error('· Native debug:', JSON.stringify(summary));
+    }
     if (child.exitCode === null && process.platform === 'win32') {
       spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' });
     }

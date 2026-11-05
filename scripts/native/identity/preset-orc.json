@@ -3,6 +3,7 @@
   "kind": "character",
   "name": "orc",
   "positive": "The same green-skinned fantasy orc with his exact source face, protruding lower tusks, black beard and topknot, muscular proportions, scars and painted game-concept-art style.",
+  "viewsPrompt": "Same green orc, exact source face: short broad nose, heavy brow, compact chin and jaw, black beard and topknot, lower tusks, original scars. Coherent full-body orthographic front, side and back views of one A-pose character; preserve proportions, equipment and left/right asymmetry. Plain gray background.",
   "identityFeatures": [
     "Preserve the original short broad nose, heavy brow, chin, jaw, beard and tusk placement; do not substitute a long nose or a generic orc face.",
     "Keep the original topknot silhouette and all visible scars."

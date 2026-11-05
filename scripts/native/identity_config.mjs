@@ -39,7 +39,12 @@ export function resolveIdentityConfig({ identityRoot, presetFile, negativeProfil
   }
   const kindLock = lock.kinds?.[preset.kind];
   if (kindLock !== undefined && typeof kindLock !== 'string') throw new Error('Invalid kind-specific identity-lock.');
-  const prompt = [lock.base, kindLock, lock.purposes[purpose], ...positive].filter(Boolean).join(' ');
+  if (preset.viewsPrompt !== undefined && (typeof preset.viewsPrompt !== 'string' || !preset.viewsPrompt.trim())) {
+    throw new Error('Preset viewsPrompt must be a non-empty string.');
+  }
+  const prompt = purpose === 'views' && preset.viewsPrompt
+    ? preset.viewsPrompt.trim()
+    : [lock.base, kindLock, lock.purposes[purpose], ...positive].filter(Boolean).join(' ');
   const negative = profile.terms.map((term) => term.trim()).filter(Boolean).join(', ');
   return {
     prompt,

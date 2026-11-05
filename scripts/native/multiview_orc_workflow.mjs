@@ -65,13 +65,13 @@ export function buildOrcTextureWorkflow({ images, glbPath, textureSize = 2048, t
 export function parseOrcOptions(argv) {
   const options = {
     stage: null, input: null, viewsDir: null, inputGlb: null, outputDir: null, jsonFile: null,
-    viewSize: 512, viewSeed: 21, profile: 'quality', coherentFront: false,
+    viewSize: 512, viewSeed: 21, profile: 'quality', coherentFront: false, debug: false,
     presetFile: null, negativeProfile: null, negativeFile: null,
   };
   const names = {
     '--stage': 'stage', '--input': 'input', '--views': 'viewsDir', '--glb': 'inputGlb',
     '--output': 'outputDir', '--json': 'jsonFile', '--view-size': 'viewSize', '--seed': 'viewSeed',
-    '--profile': 'profile', '--coherent-front': 'coherentFront', '--preset': 'presetFile',
+    '--profile': 'profile', '--coherent-front': 'coherentFront', '--debug': 'debug', '--preset': 'presetFile',
     '--negative-profile': 'negativeProfile', '--negative-file': 'negativeFile',
   };
   for (let index = 0; index < argv.length; index += 2) {
@@ -83,10 +83,14 @@ export function parseOrcOptions(argv) {
     if (!['true', 'false'].includes(options.coherentFront)) throw new Error('--coherent-front must be true or false.');
     options.coherentFront = options.coherentFront === 'true';
   }
+  if (typeof options.debug !== 'boolean') {
+    if (!['true', 'false'].includes(options.debug)) throw new Error('--debug must be true or false.');
+    options.debug = options.debug === 'true';
+  }
   options.viewSize = Number(options.viewSize);
   options.viewSeed = Number(options.viewSeed);
   if (options.viewSize !== 512) throw new Error('--view-size must be 512 for the native AMD experiment.');
-  if (!['quality', 'light'].includes(options.profile)) throw new Error('--profile must be quality or light.');
+  if (!['quality', 'balanced', 'light'].includes(options.profile)) throw new Error('--profile must be quality, balanced or light.');
   if (!['views', 'shape', 'texture'].includes(options.stage)) throw new Error('--stage must be views, shape or texture.');
   if (options.stage === 'views' && !options.input) throw new Error('--input is required for views.');
   if (options.stage === 'views' && !options.presetFile) throw new Error('--preset is required for views.');

@@ -43,13 +43,24 @@ test('orc light profile reduces texture work and keeps the multi-view contract',
   assert.equal(graph['40'].inputs.texture_steps, 4);
 });
 
+test('orc balanced profile keeps the approved geometry while using a 1024 atlas', async () => {
+  const options = parseOrcOptions(['--stage', 'texture', '--views', 'C:/views', '--glb', 'C:/orc.glb', '--profile', 'balanced']);
+  assert.equal(options.profile, 'balanced');
+  const { resolveOrcTextureProfile } = await import('../scripts/native/run_native_orc_multiview.mjs');
+  assert.deepEqual(resolveOrcTextureProfile('balanced'), { textureSize: 1024, textureSteps: 4, lighten: false });
+  assert.deepEqual(resolveOrcTextureProfile('light'), { textureSize: 1024, textureSteps: 4, lighten: true });
+  assert.deepEqual(resolveOrcTextureProfile('quality'), { textureSize: 2048, textureSteps: 12, lighten: false });
+});
+
 test('orc experiment requires explicit stage inputs and offers quality and light profiles', () => {
   assert.deepEqual(parseOrcOptions(['--stage', 'views', '--input', 'C:/apose-attempt', '--preset', 'C:/orc.json']), {
     stage: 'views', input: 'C:/apose-attempt', viewsDir: null, inputGlb: null, outputDir: null, jsonFile: null,
-    viewSize: 512, viewSeed: 21, profile: 'quality', coherentFront: false,
+    viewSize: 512, viewSeed: 21, profile: 'quality', coherentFront: false, debug: false,
     presetFile: 'C:/orc.json', negativeProfile: null, negativeFile: null,
   });
   assert.equal(parseOrcOptions(['--stage', 'views', '--input', 'C:/apose-attempt', '--preset', 'C:/orc.json', '--seed', '42']).viewSeed, 42);
+  assert.equal(parseOrcOptions(['--stage', 'views', '--input', 'C:/apose-attempt', '--preset', 'C:/orc.json', '--debug', 'true']).debug, true);
+  assert.throws(() => parseOrcOptions(['--stage', 'views', '--input', 'C:/apose-attempt', '--preset', 'C:/orc.json', '--debug', 'maybe']), /--debug must be true or false/);
   assert.throws(() => parseOrcOptions(['--stage', 'views', '--input', 'C:/apose-attempt']), /--preset/);
   assert.throws(() => parseOrcOptions(['--stage', 'views', '--input', 'C:/apose-attempt', '--preset', 'C:/orc.json', '--view-size', '640']), /512/);
   assert.equal(parseOrcOptions(['--stage', 'shape', '--views', 'C:/views']).viewsDir, 'C:/views');

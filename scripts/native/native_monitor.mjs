@@ -32,6 +32,7 @@ export function cpuPercentBetween(previous, current) {
 export function summarizeNativeSamples(samples) {
   const postReady = samples.filter((sample) => sample.postReady);
   const heartbeats = postReady.map((sample) => sample.studio?.latencyMs);
+  const engineHeartbeats = postReady.map((sample) => sample.engine?.latencyMs);
   const engineReadyIndex = samples.findIndex((sample) => sample.engine?.status === 200);
   const phases = {};
   for (const sample of samples) {
@@ -49,6 +50,9 @@ export function summarizeNativeSamples(samples) {
     heartbeatMs: { p50: percentile(heartbeats, 0.5), p95: percentile(heartbeats, 0.95), max: maximum(heartbeats) },
     heartbeatStalls250Ms: finite(heartbeats).filter((value) => value > 250).length,
     heartbeatStalls1000Ms: finite(heartbeats).filter((value) => value > 1000).length,
+    engineLatencyMs: { p50: percentile(engineHeartbeats, 0.5), p95: percentile(engineHeartbeats, 0.95), max: maximum(engineHeartbeats) },
+    engineStalls250Ms: finite(engineHeartbeats).filter((value) => value > 250).length,
+    engineStalls1000Ms: finite(engineHeartbeats).filter((value) => value > 1000).length,
     postReadyErrors: postReady.filter((sample) => sample.studio?.error || sample.engine?.error || sample.jobError).length,
     errors: {
       studio: postReady.filter((sample) => sample.studio?.error).length,
@@ -88,15 +92,16 @@ export function createNativeMonitor(options) {
   let loopPromise = null;
   let previousCpu = null;
   const samples = [];
+  const standalone = !studioUrl;
 
   async function sampleNative() {
     const [health, jobs, stats] = await Promise.all([
-      fetchJson(fetchFn, studioUrl + '/api/health'),
-      fetchJson(fetchFn, studioUrl + '/api/jobs', { 'x-astra-client': 'studio' }),
+      standalone ? Promise.resolve(null) : fetchJson(fetchFn, studioUrl + '/api/health'),
+      standalone ? Promise.resolve(null) : fetchJson(fetchFn, studioUrl + '/api/jobs', { 'x-astra-client': 'studio' }),
       fetchJson(fetchFn, engineUrl + '/system_stats'),
     ]);
-    if (health.data?.app === 'AstraForge') readySeen = true;
-    const jobList = Array.isArray(jobs.data) ? jobs.data : [];
+    if (health?.data?.app === 'AstraForge' || (standalone && stats.status === 200)) readySeen = true;
+    const jobList = Array.isArray(jobs?.data) ? jobs.data : [];
     const job = jobList.find((item) => item.engine === 'pixal3d' && item.status === 'running')
       || jobList.find((item) => item.engine === 'pixal3d') || null;
     const device = stats.data?.devices?.[0] || {};
@@ -110,12 +115,12 @@ export function createNativeMonitor(options) {
         ramUsedMb: mib(os.totalmem() - os.freemem()),
         ramTotalMb: mib(os.totalmem()),
       },
-      studio: {
+      studio: standalone ? null : {
         ready: health.data?.app === 'AstraForge', latencyMs: health.latencyMs,
         status: health.status, error: health.error,
       },
       job: job ? { id: job.id, status: job.status, progress: job.progress ?? null, message: job.message || '' } : null,
-      jobError: jobs.error,
+      jobError: jobs?.error || null,
       engine: {
         latencyMs: stats.latencyMs, status: stats.status, error: stats.error,
         deviceUsedMb: mib(device.vram_total - device.vram_free),

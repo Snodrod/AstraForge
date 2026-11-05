@@ -33,6 +33,23 @@ class LscmSolveBatchingTest(unittest.TestCase):
         torch.testing.assert_close(actual, expected)
         self.assertEqual(batches, [3, 3, 2])
 
+    def test_amd_default_solver_uses_single_chart_batches(self):
+        matrices = torch.eye(4, dtype=torch.float64).repeat(3, 1, 1)
+        rhs = torch.arange(12, dtype=torch.float64).reshape(3, 4)
+        expected = torch.linalg.solve(matrices, rhs)
+        batches = []
+        original_solve = torch.linalg.solve
+
+        def recording_solve(a, b):
+            batches.append(a.shape[0])
+            return original_solve(a, b)
+
+        with patch.object(torch.linalg, 'solve', side_effect=recording_solve):
+            actual = parameterize._solve_batched(matrices, rhs)
+
+        torch.testing.assert_close(actual, expected)
+        self.assertEqual(batches, [1, 1, 1])
+
 
 if __name__ == '__main__':
     unittest.main()
