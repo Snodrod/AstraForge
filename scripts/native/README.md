@@ -62,6 +62,21 @@ The process exit code alone is not the readiness decision: inspect `nativeReady`
 
 A passing base installation writes `native-base-ready.json` with the GPU, Torch/HIP versions, base report path and SHA-256. Its capability map remains all `false`. A passing extension stage writes `native-extensions-ready.json` with `shapeReady: true` and the extension report path and SHA-256. Neither marker unlocks production generation.
 
+## Installer acceptance: 0.3.0-amd.1 (2026-11-05)
+
+Release artifacts under `../delivery/astraforge-amd-native-2026-11-05/`:
+
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| `AstraForge-Setup-0.3.0-amd.1.exe` | 26,991,616 | `eddb2ee4a0f330556ab9958d7a05b275d36d02caa3a42ab80a9f6aaf00153ed4` |
+| `AstraForge-Pixal3D-AMD-HIP-Wheels.zip` | 5,915,704 | `75acb5e6e176f5a8c8f889510f4b4c6c042c3c817657f2bce00f8d5f791ac8d4` |
+
+Setup extraction passed. The three source, extracted and archived wheel copies matched every manifest size and SHA-256; current LSCM/MV-Adapter patches, licenses and `dist/index.html` were present, while old Setup executables and `verification/` were absent.
+
+The RX 9070 XT run reported Python 3.12.10, Torch `2.9.1+rocm7.2.1`, HIP `7.2.53211-158bd99533` and `gfx1201` with 17,095,983,104 device bytes. `data/runtime/diagnostics/native-amd/base-probe.json` has `nativeReady: true` and all nine checks passing. `extensions-installer.json` has `shapeReady: true` with sparse SDPA, NAF, FlexGEMM, O-Voxel and CuMesh passing; NATTEN and nvdiffrast are optional and remain unsupported. Both marker report hashes match. The production `native-ready.json` stayed unchanged with SHA-256 `4b62afca9708ae5e4af82de000e609eef2ac19ebd553d3b0d46a06ad17990e23`.
+
+This is installation/extension readiness, not a new generation mode. Full sources, model weights and production E2E gates remain separate. The full non-GPU suite passed 390 tests with 2 skips, and the four focused native Python commands passed 11 tests.
+
 ## Hardware result: RX 9070 XT
 
 Measured on 2026-11-03 and 2026-11-04 with `AMD Radeon RX 9070 XT`, `gfx1201`, 17,095,983,104 bytes of device memory, PyTorch `2.9.1+rocm7.2.1`, HIP `7.2.53211-158bd99533`:

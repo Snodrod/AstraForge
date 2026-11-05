@@ -1,6 +1,6 @@
 # Pixal3D native Windows AMD backend
 
-Status as of 2026-11-04: **native single-view draft 512 shape, standard 1024 shape, draft 512 geometry with a 1024 × 1024 UV atlas, and standard 1024 geometry with a 1024 × 1024 UV atlas are verified on RX 9070 XT**. A separate texture-only baton experiment also passed with 2048 × 2048 and 4096 × 4096 atlases while retaining the 1024 denoiser and existing geometry. The larger atlases are not enabled as persistent production capabilities. Other native workflows remain locked.
+Status as of 2026-11-05: **native single-view draft 512 shape, standard 1024 shape, draft 512 geometry with a 1024 × 1024 UV atlas, and standard 1024 geometry with a 1024 × 1024 UV atlas are verified on RX 9070 XT**. A separate texture-only baton experiment also passed with 2048 × 2048 and 4096 × 4096 atlases while retaining the 1024 denoiser and existing geometry. The larger atlases are not enabled as persistent production capabilities. Other native workflows remain locked.
 
 This backend is a narrow native Windows path for AMD ROCm, not a universal GPU abstraction. It preserves the existing ComfyUI API, studio job flow and WSL fallback. It does not install or replace GPU drivers, remove WSL, change global Python or require a reboot.
 
@@ -13,7 +13,24 @@ This backend is a narrow native Windows path for AMD ROCm, not a universal GPU a
 - SDPA selected for AMD instead of `flash_attn`; no silent CPU, WSL or model fallback.
 - Fail-closed native request validation and runtime installation checks.
 - Job telemetry for backend, phase timings, fallback events and output geometry, serialized through the existing job result.
-- Offline base installer and structured hardware probes; see `scripts/native/README.md`.
+- Verified official ROCm downloads, bundled HIP wheels and separate base/extension hardware probes; see `scripts/native/README.md`.
+
+## Installer release 0.3.0-amd.1: verified on 2026-11-05
+
+The installer downloads the six official ROCm/PyTorch wheels and the ROCm 7.2.1 meta-package only from pinned `repo.radeon.com` URLs, requiring exact byte sizes and SHA-256 values from `installer/amd/native-wheels.json`. CuMesh, FlexGEMM and O-Voxel HIP wheels are bundled with license notices and installed offline. Their source binaries were not rebuilt or modified.
+
+Release artifacts under `../delivery/astraforge-amd-native-2026-11-05/`:
+
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| `AstraForge-Setup-0.3.0-amd.1.exe` | 26,991,616 | `eddb2ee4a0f330556ab9958d7a05b275d36d02caa3a42ab80a9f6aaf00153ed4` |
+| `AstraForge-Pixal3D-AMD-HIP-Wheels.zip` | 5,915,704 | `75acb5e6e176f5a8c8f889510f4b4c6c042c3c817657f2bce00f8d5f791ac8d4` |
+
+The Setup was extracted successfully and contained all three wheels, current LSCM/MV-Adapter patches, license notices and the built interface; it contained neither the old `AstraForge-Setup-0.5.1.exe` nor `verification/`. Source, extracted and archived wheel copies all matched the manifest hashes.
+
+On the RX 9070 XT acceptance run, `base-probe.json` reported `nativeReady: true` with all nine checks passing: Python/HIP import, GPU detection/architecture, FP32/FP16/BF16 matrix operations, SDPA and memory cleanup. `extensions-installer.json` reported `shapeReady: true` with sparse SDPA, NAF, FlexGEMM, O-Voxel and CuMesh passing. NATTEN and nvdiffrast remained optional and unsupported; no substitute was installed. Python was 3.12.10, Torch `2.9.1+rocm7.2.1`, HIP `7.2.53211-158bd99533`, GPU `gfx1201` with 17,095,983,104 reported device bytes.
+
+The installer wrote separate `native-base-ready.json` and `native-extensions-ready.json` markers with matching report hashes. The production `native-ready.json` remained byte-for-byte unchanged at SHA-256 `4b62afca9708ae5e4af82de000e609eef2ac19ebd553d3b0d46a06ad17990e23`. This acceptance proves installation and extension readiness, **not a new generation capability**: full sources, model weights and per-capability E2E gates remain separate. The complete non-GPU suite passed 390 tests with 2 skips; the four focused native Python test commands passed 11 tests.
 
 ## Measured native results
 
