@@ -16,6 +16,7 @@ $NativeWheelManifest = Get-Content -LiteralPath (Join-Path $ProjectRoot 'install
 $NativeWheelDir = Join-Path $ProjectRoot 'installer\downloads\amd'
 $NativeExtensionWheelDir = Join-Path $ProjectRoot 'installer\amd\wheels'
 $NativeToolsDir = Join-Path $ProjectRoot 'scripts\native'
+$ExtensionReportPath = Join-Path $ProjectRoot 'data\runtime\diagnostics\native-amd\extensions-installer.json'
 
 function Assert-NativeRuntimePath([string]$Path) {
   if (!$Path -or ![IO.Path]::IsPathRooted($Path) -or $Path -match '^/mnt/[a-z](/|$)' -or $Path -match '(?i)wsl\.exe') {
@@ -99,6 +100,19 @@ function Invoke-NativeProbe {
   if ($LASTEXITCODE -ne 0) { throw "Native AMD probe exited with code $LASTEXITCODE" }
 }
 
+function Invoke-NativeExtensionProbe {
+  $python = Join-Path $RuntimeRoot 'python_embeded\python.exe'
+  $probe = Join-Path $NativeToolsDir 'probe_trellis2_extensions.py'
+  & $python -I $probe --output $ExtensionReportPath
+  $probeExitCode = $LASTEXITCODE
+  if (!(Test-Path -LiteralPath $ExtensionReportPath -PathType Leaf)) {
+    throw "Native AMD extension probe did not write a report (exit code $probeExitCode)."
+  }
+  $report = Get-Content -LiteralPath $ExtensionReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  if (!$report.shapeReady) { throw "Native AMD extensions are not ready. See $ExtensionReportPath" }
+  if ($probeExitCode -ne 0) { throw "Native AMD extension probe exited with code $probeExitCode" }
+}
+
 function Install-NativePython {
   $pythonDir = Join-Path $RuntimeRoot 'python_embeded'
   $python = Join-Path $pythonDir 'python.exe'
@@ -143,6 +157,7 @@ function Invoke-NativePip([string[]]$Arguments) {
 Assert-NativeRuntimePath $RuntimeRoot
 $RuntimeRoot = [IO.Path]::GetFullPath($RuntimeRoot)
 $baseMarker = Join-Path $RuntimeRoot 'native-base-ready.json'
+$extensionMarker = Join-Path $RuntimeRoot 'native-extensions-ready.json'
 if ($ProbeOnly) {
   Invoke-NativeProbe
   return
@@ -152,24 +167,22 @@ if ($DryRun) {
   Write-Host 'No driver, model, system Python, or existing runtime changes.'
   return
 }
-if ((Test-Path -LiteralPath $baseMarker) -and !$ForceProbe) {
-  Invoke-NativeProbe
-  return
+if (!(Test-Path -LiteralPath $baseMarker) -or $ForceProbe) {
+  New-Item -ItemType Directory -Force -Path $RuntimeRoot | Out-Null
+  $env:HF_HOME = Join-Path $RuntimeRoot 'cache\huggingface'
+  $env:TORCH_HOME = Join-Path $RuntimeRoot 'cache\torch'
+  $env:PIP_DISABLE_PIP_VERSION_CHECK = '1'
+  $env:PIP_NO_INPUT = '1'
+  Install-NativePython
+  Invoke-NativePip @('install', '-r', (Join-Path $NativeToolsDir 'requirements-base.txt'))
+  $python = Join-Path $RuntimeRoot 'python_embeded\python.exe'
+  & $python -I (Join-Path $NativeToolsDir 'install_pixal3d_amd.py') --runtime $RuntimeRoot --wheel-dir $NativeWheelDir --check
+  if ($LASTEXITCODE -ne 0) { throw 'Native runtime or wheel validation failed.' }
+  $wheels = @(Get-AmdNativeWheelPaths)
+  Invoke-NativePip @('install', '--no-index', '--no-deps', '--no-build-isolation', (Get-AmdNativeMetaPackage))
+  Invoke-NativePip (@('install', '--no-index', '--no-deps') + $wheels)
 }
 
-New-Item -ItemType Directory -Force -Path $RuntimeRoot | Out-Null
-$env:HF_HOME = Join-Path $RuntimeRoot 'cache\huggingface'
-$env:TORCH_HOME = Join-Path $RuntimeRoot 'cache\torch'
-$env:PIP_DISABLE_PIP_VERSION_CHECK = '1'
-$env:PIP_NO_INPUT = '1'
-Install-NativePython
-Invoke-NativePip @('install', '-r', (Join-Path $NativeToolsDir 'requirements-base.txt'))
-$python = Join-Path $RuntimeRoot 'python_embeded\python.exe'
-& $python -I (Join-Path $NativeToolsDir 'install_pixal3d_amd.py') --runtime $RuntimeRoot --wheel-dir $NativeWheelDir --check
-if ($LASTEXITCODE -ne 0) { throw 'Native runtime or wheel validation failed.' }
-$wheels = @(Get-AmdNativeWheelPaths)
-Invoke-NativePip @('install', '--no-index', '--no-deps', '--no-build-isolation', (Get-AmdNativeMetaPackage))
-Invoke-NativePip (@('install', '--no-index', '--no-deps') + $wheels)
 Invoke-NativeProbe
 $report = Get-Content -LiteralPath $ReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
 if (!$report.nativeReady) {
@@ -188,3 +201,19 @@ $marker = @{
 }
 [IO.File]::WriteAllText($baseMarker, (($marker | ConvertTo-Json -Depth 6) + "`n"), (New-Object Text.UTF8Encoding($false)))
 Write-Host "Native AMD base runtime is ready. Pixal3D capabilities remain locked pending extension and E2E probes: $baseMarker"
+
+Remove-Item -LiteralPath $extensionMarker -Force -ErrorAction SilentlyContinue
+$extensionWheels = @(Get-AmdExtensionWheelPaths)
+Invoke-NativePip (@('install', '--no-index', '--no-deps') + $extensionWheels)
+Invoke-NativeExtensionProbe
+$extensionReport = Get-Content -LiteralPath $ExtensionReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$extensionMarkerData = @{
+  schemaVersion = 1
+  runtime = $RuntimeRoot
+  report = $ExtensionReportPath
+  reportSha256 = (Get-FileHash -LiteralPath $ExtensionReportPath -Algorithm SHA256).Hash.ToLowerInvariant()
+  shapeReady = $extensionReport.shapeReady
+  createdAt = [DateTime]::UtcNow.ToString('o')
+}
+[IO.File]::WriteAllText($extensionMarker, (($extensionMarkerData | ConvertTo-Json -Depth 6) + "`n"), (New-Object Text.UTF8Encoding($false)))
+Write-Host "Native AMD HIP extensions are ready. Generation capabilities remain locked: $extensionMarker"

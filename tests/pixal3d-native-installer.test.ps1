@@ -104,6 +104,13 @@ try {
     Remove-Item -LiteralPath $source, $wrong -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath Function:\Invoke-WebRequest -Force -ErrorAction SilentlyContinue
   }
+  Assert ($text.Contains("+ `$extensionWheels")) 'installer must install all three bundled HIP wheels offline'
+  Assert ($text.Contains('probe_trellis2_extensions.py')) 'installer must run the native extension probe'
+  Assert ($text.Contains('--output $ExtensionReportPath')) 'extension probe must write a structured report'
+  Assert ($text.Contains('native-extensions-ready.json')) 'extension probe has a separate readiness marker'
+  Assert ($text.Contains('.shapeReady')) 'installer must require shape-ready HIP extensions'
+  Assert (!$text.Contains("'native-ready.json'")) 'installer must not unlock the production generation gate'
+  Assert ($text -notmatch '(?ms)if \(\(Test-Path -LiteralPath \$baseMarker\) -and !\$ForceProbe\) \{\s*Invoke-NativeProbe\s*return\s*\}') 'an existing base marker must not skip extension installation'
   Write-Host 'Native AMD installer unit tests passed'
 } finally {
   Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
