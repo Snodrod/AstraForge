@@ -12,7 +12,9 @@ $ProjectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 if (!$RuntimeRoot) { $RuntimeRoot = Join-Path $ProjectRoot 'runtime\ComfyUI-Pixal3D-AMD-Native' }
 if (!$ReportPath) { $ReportPath = Join-Path $ProjectRoot 'data\runtime\diagnostics\native-amd\base-probe.json' }
 $NativeManifest = Get-Content -LiteralPath (Join-Path $ProjectRoot 'installer\pixal3d\manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$NativeWheelManifest = Get-Content -LiteralPath (Join-Path $ProjectRoot 'installer\amd\native-wheels.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $NativeWheelDir = Join-Path $ProjectRoot 'installer\downloads\amd'
+$NativeExtensionWheelDir = Join-Path $ProjectRoot 'installer\amd\wheels'
 $NativeToolsDir = Join-Path $ProjectRoot 'scripts\native'
 
 function Assert-NativeRuntimePath([string]$Path) {
@@ -25,27 +27,52 @@ function Assert-NativeRuntimePath([string]$Path) {
   }
 }
 
-function Get-AmdNativeWheelPaths() {
-  $names = @(
-    'rocm_sdk_core-7.2.1-py3-none-win_amd64.whl',
-    'rocm_sdk_devel-7.2.1-py3-none-win_amd64.whl',
-    'rocm_sdk_libraries_custom-7.2.1-py3-none-win_amd64.whl',
-    'torch-2.9.1+rocm7.2.1-cp312-cp312-win_amd64.whl',
-    'torchaudio-2.9.1+rocm7.2.1-cp312-cp312-win_amd64.whl',
-    'torchvision-0.24.1+rocm7.2.1-cp312-cp312-win_amd64.whl'
-  )
-  $paths = @($names | ForEach-Object { Join-Path $NativeWheelDir $_ })
-  foreach ($path in $paths) {
-    if (!(Test-Path -LiteralPath $path)) { throw "Missing native AMD wheel: $path" }
-    if ($path -match '(?i)cu128|cuda') { throw "A CUDA wheel is not valid for native AMD: $path" }
+function Test-AmdPackageFile($Entry, [string]$Path) {
+  if (!(Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+  $item = Get-Item -LiteralPath $Path
+  if ($item.Length -ne [long]$Entry.size) { return $false }
+  return ((Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() -eq $Entry.sha256.ToLowerInvariant())
+}
+
+function Save-AmdOfficialPackage($Entry) {
+  New-Item -ItemType Directory -Force -Path $NativeWheelDir | Out-Null
+  $destination = Join-Path $NativeWheelDir $Entry.file
+  if (Test-AmdPackageFile $Entry $destination) { return $destination }
+  $partial = $destination + '.part'
+  Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue
+  Invoke-WebRequest -Uri $Entry.url -OutFile $partial
+  if (!(Test-AmdPackageFile $Entry $partial)) {
+    Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue
+    throw "Downloaded AMD package failed size or SHA-256 validation: $($Entry.file)"
   }
+  Move-Item -LiteralPath $partial -Destination $destination -Force
+  return $destination
+}
+
+function Get-AmdNativeWheelPaths() {
+  $paths = @($NativeWheelManifest.official | Where-Object { $_.file.EndsWith('.whl') } | ForEach-Object {
+    if ($_.file -match '(?i)cu128|cuda') { throw "A CUDA wheel is not valid for native AMD: $($_.file)" }
+    Save-AmdOfficialPackage $_
+  })
+  if ($paths.Count -ne 6) { throw 'Exactly six official ROCm/PyTorch wheels are required.' }
   return $paths
 }
 
 function Get-AmdNativeMetaPackage() {
-  $package = Join-Path $NativeWheelDir 'rocm-7.2.1.tar.gz'
-  if (!(Test-Path -LiteralPath $package)) { throw "Missing ROCm meta package: $package" }
-  return $package
+  $entry = @($NativeWheelManifest.official | Where-Object { $_.file -eq 'rocm-7.2.1.tar.gz' })
+  if ($entry.Count -ne 1) { throw 'The ROCm meta package must occur exactly once in the manifest.' }
+  return Save-AmdOfficialPackage $entry[0]
+}
+
+function Get-AmdExtensionWheelPaths() {
+  $paths = @($NativeWheelManifest.extensions | ForEach-Object {
+    if ($_.file -match '(?i)cu128|cuda') { throw "A CUDA wheel is not valid for native AMD: $($_.file)" }
+    $path = Join-Path $NativeExtensionWheelDir $_.file
+    if (!(Test-AmdPackageFile $_ $path)) { throw "Bundled HIP wheel failed size or SHA-256 validation: $path" }
+    $path
+  })
+  if ($paths.Count -ne 3) { throw 'Exactly three bundled HIP wheels are required.' }
+  return $paths
 }
 
 function Write-NativeProbeReport($Report) {
