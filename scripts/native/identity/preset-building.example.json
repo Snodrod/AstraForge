@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "kind": "building",
+  "name": "building-example",
+  "positive": "The same two-storey wooden house with the exact source footprint, roof silhouette, window positions and materials.",
+  "identityFeatures": ["Preserve the roof, chimney, porch and facade proportions."],
+  "inventory": ["Keep exactly one chimney and one front porch when present in the source."],
+  "asymmetry": ["Do not mirror an asymmetric extension onto the opposite side."],
+  "viewNotes": ["Hidden walls must follow the visible roof and floor structure without added rooms or towers."]
+}

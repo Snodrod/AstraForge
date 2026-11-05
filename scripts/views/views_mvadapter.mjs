@@ -83,7 +83,7 @@ export async function generateMvadapterViews(o) {
   const started = Date.now();
   const attempt = async (sz) => {
     const refName = await uploadImage(comfyUrl, refFile, 'astra-mva-ref.png');
-    const wf = mvadapterWorkflow({ refName, azimuths, size: sz, steps, cfg, seed, prefix: 'astra_views/mva_' + Date.now() });
+    const wf = mvadapterWorkflow({ refName, azimuths, size: sz, steps, cfg, seed, prefix: 'astra_views/mva_' + Date.now(), prompt: o.prompt, negative: o.negative });
     const run = await withEngineGpu('hunyuan', () => runWorkflow(comfyUrl, wf, {
       signal: o.signal,
       onProgress: (t) => o.onProgress?.('MV-Adapter · ' + t),

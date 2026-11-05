@@ -1,0 +1,20 @@
+--- a/trellis2/pipelines/trellis2_image_to_3d.py
++++ b/trellis2/pipelines/trellis2_image_to_3d.py
+@@ -842,7 +842,7 @@
+         grid_resolution_override: int = None,
+     ) -> dict:
+         """Multi-view proj conditioning for the shape / texture stages (sparse tokens)."""
+-        print('Getting MultiView Projected Image Cond ...')
++        print('Getting MultiView Projected Image Cond ...', flush=True)
+         device = self.device
+         # See get_proj_cond_ss_mv: these models are built after pipeline.to().
+         image_cond_model.to(device)
+@@ -3831,6 +3831,8 @@
+ 
+         if views is not None:
+             image_cond_model = self.load_pixal3d_mv_image_cond_tex_1024()
++            if os.environ.get('ASTRA_AMD_ROCM') == '1':
++                image_cond_model.naf_tile_factor = int(os.environ.get('ASTRA_AMD_NAF_TILE', '2'))
+             cond = self.get_proj_cond_shape_mv(
+                 image_cond_model, views, shape_slat.coords,
+                 grid_resolution_override=tex_grid_res,

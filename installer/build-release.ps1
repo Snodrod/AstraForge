@@ -1,4 +1,4 @@
-﻿# Builds a single distributable file: AstraForge-Setup-<version>.exe (the application + the built interface + node_modules
+# Builds a single distributable file: AstraForge-Setup-<version>.exe (the application + the built interface + node_modules
 # without dev packages). Models, Blender, ComfyUI and the rest are not included - the installer\Install.ps1 wizard downloads them.
 #   powershell -ExecutionPolicy Bypass -File installer\build-release.ps1 [-Out <folder>]
 # By default the result goes to ..\AstraForge-release next to the application folder.
@@ -23,8 +23,8 @@ function Copy-Tree($from, $to, [string[]]$xd, [string[]]$xf) {
 $skipDirs = @('node_modules', '.git', '__pycache__', 'library.moved-*') + @(
   'runtime', 'library', 'config', 'installer\downloads', 'installer\setup\bin',
   'data\models', 'data\assets', 'data\jobs', 'data\projects', 'data\exports', 'data\tripo', 'data\python',
-  'data\library', 'data\runtime', 'data\views', '.claude') | ForEach-Object { if ($_ -match '\\|^(runtime|library|config)$') { Join-Path $Root $_ } else { $_ } }
-Copy-Tree $Root $stage $skipDirs @('*.glb', '*.zip', '*.pyc', '.env', 'vault.json', 'install.log', 'node.pid', '*.log', (Join-Path $Root 'data\config.json'))
+  'data\library', 'data\runtime', 'data\views', '.claude', 'verification') | ForEach-Object { if ($_ -match '\\|^(runtime|library|config)$') { Join-Path $Root $_ } else { $_ } }
+Copy-Tree $Root $stage $skipDirs @('*.glb', '*.zip', '*.pyc', '.env', 'vault.json', 'install.log', 'node.pid', '*.log', 'AstraForge-Setup-*.exe', (Join-Path $Root 'data\config.json'))
 # the ComfyUI-MVAdapter node is not put into the archive: the wizard installs it itself (the original from GitHub plus the AstraForge patches from installer\mvadapter\patch)
 Copy-Tree (Join-Path $Root 'data\runtime\custom_nodes') (Join-Path $stage 'data\runtime\custom_nodes') @('__pycache__', 'ComfyUI-MVAdapter') @('*.pyc')
 if (!(Test-Path -LiteralPath (Join-Path $stage 'dist\index.html'))) { throw 'The built interface is missing: run npm run build.' }

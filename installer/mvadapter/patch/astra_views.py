@@ -129,7 +129,6 @@ class AstraMVAdapterViews:
             if pipe is not None:
                 try:
                     pipe.maybe_free_model_hooks()
-                    pipe.to("cpu")
                 except Exception:
                     pass
             del pipe

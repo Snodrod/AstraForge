@@ -1,0 +1,93 @@
+diff --git a/src/io.cu b/src/io.cu
+--- a/src/io.cu
++++ b/src/io.cu
+@@ -92,15 +92,19 @@ static torch::Tensor buffer_to_tensor(const Buffer<T> buffer) {
+             cudaMemcpyDeviceToDevice
+         ));
+     } else {
+-        CUDA_CHECK(cudaMemcpy2D(
+-            tensor.data_ptr(),
+-            dst_bytes,
+-            buffer.ptr,
+-            sizeof(T),
+-            dst_bytes,
+-            count,
+-            cudaMemcpyDeviceToDevice
+-        ));
++        static constexpr int64_t kChunk = 1 << 16;
++        for (int64_t row = 0; row < count; row += kChunk) {
++            int64_t rows = std::min(kChunk, count - row);
++            CUDA_CHECK(cudaMemcpy2D(
++                static_cast<char*>(tensor.data_ptr()) + row * dst_bytes,
++                dst_bytes,
++                static_cast<const char*>(static_cast<const void*>(buffer.ptr)) + row * sizeof(T),
++                sizeof(T),
++                dst_bytes,
++                rows,
++                cudaMemcpyDeviceToDevice
++            ));
++        }
+     }
+ 
+     return tensor;
+@@ -112,22 +112,16 @@ void CuMesh::init(const torch::Tensor& vertices, const torch::Tensor& faces) {
+     size_t num_faces = faces.size(0);
+     this->vertices.resize(num_vertices);
+     this->faces.resize(num_faces);
+-    CUDA_CHECK(cudaMemcpy2D(
++    CUDA_CHECK(cudaMemcpy(
+         this->vertices.ptr,
+-        sizeof(float3),
+         vertices.data_ptr<float>(),
+-        sizeof(float) * 3,
+-        sizeof(float) * 3,
+-        num_vertices,
++        sizeof(float) * 3 * num_vertices,
+         cudaMemcpyDeviceToDevice
+     ));
+-    CUDA_CHECK(cudaMemcpy2D(
++    CUDA_CHECK(cudaMemcpy(
+         this->faces.ptr,
+-        sizeof(int3),
+         faces.data_ptr<int>(),
+-        sizeof(int) * 3,
+-        sizeof(int) * 3,
+-        num_faces,
++        sizeof(int) * 3 * num_faces,
+         cudaMemcpyDeviceToDevice
+     ));
+ }
+diff --git a/src/clean_up.cu b/src/clean_up.cu
+--- a/src/clean_up.cu
++++ b/src/clean_up.cu
+@@ -1,6 +1,7 @@
+ #include "cumesh.h"
+ #include "dtypes.cuh"
+ #include "shared.h"
+ #include <cub/cub.cuh>
++#include <rocprim/types/tuple.hpp>
+ 
+ 
+@@ -230,6 +231,6 @@ struct int3_decomposer
+ {
+-    __host__ __device__ ::cuda::std::tuple<int&, int&, int&> operator()(int3& key) const
++    __host__ __device__ ::rocprim::tuple<int&, int&, int&> operator()(int3& key) const
+     {
+-        return {key.x, key.y, key.z};
++        return ::rocprim::tuple<int&, int&, int&>(key.x, key.y, key.z);
+     }
+ };
+diff --git a/setup.py b/setup.py
+--- a/setup.py
++++ b/setup.py
+@@ -71,10 +71,8 @@ setup(
+                 "cxx": ["-O3", "-std=c++20"],
+                 "nvcc": ["-O3","-std=c++20"] + cc_flag + [
+-                    "--extended-lambda",
+-                    "--expt-relaxed-constexpr",
+                     # The following definitions must be undefined
+                     # since we need half-precision operation.
+                     "-U__CUDA_NO_HALF_OPERATORS__",
+                     "-U__CUDA_NO_HALF_CONVERSIONS__",
+                     "-U__CUDA_NO_HALF2_OPERATORS__",
+                 ]

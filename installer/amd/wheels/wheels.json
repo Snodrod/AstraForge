@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "builtAt": "2026-11-04T14:01:24Z",
+  "python": "3.12",
+  "archs": "gfx1201;gfx1200;gfx1100;gfx1101",
+  "torch": "2.9.1+rocm7.2.1",
+  "rocm": "7.2.1",
+  "sources": {
+    "cumesh": {
+      "url": "https://github.com/visualbruno/CuMesh.git",
+      "commit": "d10e54c30ddd03d11472c1431693f985501c7966",
+      "license": "MIT"
+    },
+    "cumeshEigen": {
+      "url": "https://gitlab.com/libeigen/eigen.git",
+      "commit": "3147391d946bb4b6c68edd901f2add6ac1f31f8c",
+      "license": "MPL-2.0"
+    },
+    "flexgemm": {
+      "url": "https://github.com/visualbruno/FlexGEMM.git",
+      "commit": "db388bd17c34abc697792aa718dca780734c2783",
+      "license": "MIT"
+    },
+    "trellis2": {
+      "url": "https://github.com/visualbruno/TRELLIS.2.git",
+      "commit": "65d1e13b4a92296036044df0633242bb9e95abf6",
+      "license": "MIT"
+    },
+    "ovoxelEigen": {
+      "url": "https://gitlab.com/libeigen/eigen.git",
+      "commit": "21e4582d1739107337a03460c81412981130373e",
+      "license": "MPL-2.0"
+    }
+  },
+  "wheels": [
+    {
+      "name": "cumesh",
+      "file": "cumesh-1.0-cp312-cp312-win_amd64.whl",
+      "size": 5649177,
+      "sha256": "27f4600536972e51c6f3967fa370132b7d0781f1a64be3c67f91ae0af8f1614b"
+    },
+    {
+      "name": "flex_gemm",
+      "file": "flex_gemm-1.0.0-cp312-cp312-win_amd64.whl",
+      "size": 294337,
+      "sha256": "ef65af07c3f34c767ba111d79407b9de4ba1d6137669fc0cd9482bce62c1d4c8"
+    },
+    {
+      "name": "o_voxel",
+      "file": "o_voxel-0.0.1-cp312-cp312-win_amd64.whl",
+      "size": 267263,
+      "sha256": "7a5a36de76e121082dbf3661e6fa3852da5ac6f1a56ce89d8efe2c04884fa0ae"
+    }
+  ]
+}

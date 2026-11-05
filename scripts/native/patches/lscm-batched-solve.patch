@@ -1,0 +1,28 @@
+diff --git a/comfy_extras/mesh3d/uv_unwrap/parameterize.py b/comfy_extras/mesh3d/uv_unwrap/parameterize.py
+index 383d21d..58c721f 100644
+--- a/comfy_extras/mesh3d/uv_unwrap/parameterize.py
++++ b/comfy_extras/mesh3d/uv_unwrap/parameterize.py
+@@ -13,6 +13,14 @@ from torch import Tensor
+ from . import mesh as _mesh
+ 
+ LSCM_BATCH_MAX_VERTS = 256      # charts above this solve per-chart sparse (lscm_chart)
++LSCM_SOLVE_BATCH_SIZE = 1
++
++
++def _solve_batched(AtA: Tensor, Atb: Tensor) -> Tensor:
++    return torch.cat([
++        torch.linalg.solve(AtA[start:start + LSCM_SOLVE_BATCH_SIZE], Atb[start:start + LSCM_SOLVE_BATCH_SIZE])
++        for start in range(0, AtA.shape[0], LSCM_SOLVE_BATCH_SIZE)
++    ], dim=0)
+ 
+ 
+ def solve_least_squares(A: sp.csr_matrix, b: np.ndarray) -> np.ndarray:
+@@ -335,7 +343,7 @@ def lscm_charts_batch(
+             dsc = 1e-12 * torch.nan_to_num(dpos.nanmedian(dim=1).values, nan=1e-8).clamp_min(1e-20)
+             diag += torch.where(con_t, torch.ones_like(diag), dsc[:, None].expand_as(diag))
+             Atb = torch.where(con_t, torch.from_numpy(cval).to(device), Atb)
+-            x = torch.linalg.solve(AtA, Atb).cpu().numpy()
++            x = _solve_batched(AtA, Atb).cpu().numpy()
+         else:
+             At = A.transpose(0, 2, 1)
+             AtA = At @ A                             # batched BLAS dgemm

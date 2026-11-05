@@ -6,6 +6,9 @@ import { existsSync, readFileSync, openSync, closeSync, promises as fs } from 'n
 import path from 'node:path';
 import { root, data } from './storage.mjs';
 import { localUrl } from './schema.mjs';
+import { pixal3dWslArgs } from './pixal3d-wsl.mjs';
+import { getPixal3DBackend } from './pixal3d-backends.mjs';
+import { buildNativePixal3DLaunch } from './pixal3d-native.mjs';
 
 export const DEFAULT_PIXAL3D_DIR = 'C:/AstraForge/ComfyUI-Pixal3D';
 export const DEFAULT_PIXAL3D_URL = 'http://127.0.0.1:8191';
@@ -29,8 +32,60 @@ export const PIXAL3D_REQUIREMENTS = [
 /** Typical numbers shown in the UI and docs (RTX 4070 12 GB, militia, see docs/forge/pixal3d.md). */
 export const PIXAL3D_ESTIMATE = { multiSeconds: 232, singleSeconds: 355, vramGb: 9.5 };
 
+// The verified AMD single-view 1024 run needed about 10.5 GiB above its baseline. Keep a small safety margin,
+// but do not require the whole 15.3 GB peak to be free: the baseline models are already resident at this point.
+export const PIXAL3D_1024_MIN_FREE_BYTES = 11264 * 1024 * 1024;
+
+function pixal3dRequestError(code, message, details = {}) {
+  return Object.assign(new Error(message), { code, ...details });
+}
+
+/** Reject combinations that are not verified before creating a job or starting the runtime. */
+export function validatePixal3dRequest(input, cfg = pixal3dConfig(), { multi = !!input.viewSetId } = {}) {
+  if (input.engine !== 'pixal3d') return;
+  const texturing = !!(input.vertexColors || input.uvTexture);
+  const nativeStandardUv = cfg.backend === 'windows-rocm' && !multi && input.quality === 'standard' && input.uvTexture && !input.vertexColors;
+  if (multi && texturing) {
+    throw pixal3dRequestError('pixal3d_multiview_texturing_unsupported', 'Pixal3D vertex colors and UV textures currently require the single-view workflow.');
+  }
+  if (texturing && input.quality !== 'draft' && !nativeStandardUv) {
+    throw pixal3dRequestError('pixal3d_texturing_requires_draft', 'Pixal3D texturing is verified only with draft 512 geometry. Select draft 512; the 1024 texturing combination is not verified.');
+  }
+  if (multi && ['wsl', 'windows-rocm'].includes(cfg.backend) && input.quality !== 'draft') {
+    throw pixal3dRequestError('pixal3d_amd_multiview_1024_unsupported', 'AMD multi-view 1024 is unsupported on the verified 16 GB GPU and not verified on 24 GB GPUs. Use draft 512.');
+  }
+  if (cfg.backend === 'windows-rocm') {
+    if (input.vertexColors) {
+      throw pixal3dRequestError('pixal3d_native_capability_unsupported', 'Native AMD vertex colors are not verified yet. Use the WSL backend or generate shape only.');
+    }
+    if (nativeStandardUv && !cfg.nativeCapabilities?.single1024) {
+      throw pixal3dRequestError('pixal3d_native_not_ready', 'Native AMD Pixal3D is not verified for this workflow. Run the native probes or select the WSL backend.', { capability: 'single1024' });
+    }
+    const capability = nativeStandardUv ? 'uvTextureStandard1024' : input.uvTexture ? 'uvTexture1024' : input.quality === 'draft' ? (multi ? 'multi512' : 'single512') : (multi ? 'multi1024' : 'single1024');
+    if (!cfg.nativeCapabilities?.[capability]) {
+      throw pixal3dRequestError('pixal3d_native_not_ready', 'Native AMD Pixal3D is not verified for this workflow. Run the native probes or select the WSL backend.', { capability });
+    }
+  }
+}
+
+/** Check ComfyUI /system_stats before uploads and GPU acquisition for a 1024 run. */
+export function preflightPixal3dVram(stats, { quality = 'standard' } = {}) {
+  if (quality === 'draft') return null;
+  const freeBytes = Math.max(-1, ...(stats?.devices || []).map((device) => Number(device?.vram_free)).filter((bytes) => Number.isFinite(bytes) && bytes >= 0));
+  if (freeBytes < 0) {
+    throw pixal3dRequestError('pixal3d_vram_unknown', 'Pixal3D could not read free VRAM for the 1024 profile. Restart the engine or use draft 512.', { recommendedQuality: 'draft' });
+  }
+  if (freeBytes < PIXAL3D_1024_MIN_FREE_BYTES) {
+    const freeMiB = Math.floor(freeBytes / 1024 / 1024), requiredMiB = PIXAL3D_1024_MIN_FREE_BYTES / 1024 / 1024;
+    throw pixal3dRequestError('pixal3d_vram_insufficient', `Pixal3D 1024 needs at least ${requiredMiB} MiB free VRAM; only ${freeMiB} MiB is available. Close GPU applications or use draft 512.`, {
+      freeBytes, requiredBytes: PIXAL3D_1024_MIN_FREE_BYTES, recommendedQuality: 'draft',
+    });
+  }
+  return { freeBytes, requiredBytes: PIXAL3D_1024_MIN_FREE_BYTES };
+}
+
 function readPathsJson(rootDir) {
-  try { return JSON.parse(readFileSync(path.join(rootDir, 'config', 'paths.json'), 'utf8')); } catch { return {}; }
+  try { return JSON.parse(readFileSync(path.join(rootDir, 'config', 'paths.json'), 'utf8').replace(/^\uFEFF/, '')); } catch { return {}; }
 }
 
 /**
@@ -39,9 +94,17 @@ function readPathsJson(rootDir) {
  */
 export function pixal3dConfig({ env = process.env, appRoot = root } = {}) {
   const paths = readPathsJson(appRoot);
-  let dir = DEFAULT_PIXAL3D_DIR, source = 'default';
-  if (env.ASTRA_PIXAL3D_DIR) { dir = env.ASTRA_PIXAL3D_DIR; source = 'env'; }
-  else if (typeof paths.pixal3dDir === 'string' && paths.pixal3dDir.trim()) { dir = paths.pixal3dDir.trim(); source = 'paths.json'; }
+  const backend = env.ASTRA_PIXAL3D_BACKEND || paths.pixal3dBackend || 'windows';
+  const nativeEnv = !env.ASTRA_PIXAL3D_NATIVE_DIR && paths.pixal3dNativeDir
+    ? { ...env, ASTRA_PIXAL3D_NATIVE_DIR: paths.pixal3dNativeDir }
+    : env;
+  const descriptor = getPixal3DBackend(backend, nativeEnv, appRoot);
+  let dir = backend === 'windows-rocm' ? descriptor.runtimeRoot : DEFAULT_PIXAL3D_DIR;
+  let source = backend === 'windows-rocm' ? (nativeEnv.ASTRA_PIXAL3D_NATIVE_DIR ? 'native-config' : 'native-default') : 'default';
+  if (backend !== 'windows-rocm') {
+    if (env.ASTRA_PIXAL3D_DIR) { dir = env.ASTRA_PIXAL3D_DIR; source = 'env'; }
+    else if (typeof paths.pixal3dDir === 'string' && paths.pixal3dDir.trim()) { dir = paths.pixal3dDir.trim(); source = 'paths.json'; }
+  }
   let url = DEFAULT_PIXAL3D_URL;
   const wanted = env.ASTRA_PIXAL3D_URL || paths.pixal3dUrl;
   if (wanted) {
@@ -50,7 +113,17 @@ export function pixal3dConfig({ env = process.env, appRoot = root } = {}) {
     url = parsed.data;
   }
   const port = Number(new URL(url).port) || 80;
-  return { dir: path.resolve(dir), url, port, source };
+  const wslDistro = String(env.ASTRA_PIXAL3D_WSL_DISTRO || paths.pixal3dWslDistro || 'AstraForge-AMD').trim() || 'AstraForge-AMD';
+  let nativeCapabilities = descriptor.capabilities;
+  if (backend === 'windows-rocm') {
+    try {
+      const readiness = JSON.parse(readFileSync(path.join(dir, 'native-ready.json'), 'utf8').replace(/^\uFEFF/, ''));
+      nativeCapabilities = Object.fromEntries(Object.keys(descriptor.capabilities).map((key) => [key, readiness?.capabilities?.[key] === true]));
+    } catch {
+      nativeCapabilities = Object.fromEntries(Object.keys(descriptor.capabilities).map((key) => [key, false]));
+    }
+  }
+  return { dir: path.resolve(dir), url, port, source, backend, wslDistro, nativeDir: descriptor.runtimeRoot, nativeCapabilities };
 }
 
 /** Disk check only (no network): which required files are missing. */
@@ -58,7 +131,12 @@ export function pixal3dInstallState(cfg = pixal3dConfig(), exists = existsSync) 
   if (!exists(cfg.dir)) {
     return { installed: false, missing: [], message: `Pixal3D is not installed: folder not found ${cfg.dir}. Set it in ASTRA_PIXAL3D_DIR or config\\paths.json (key pixal3dDir).` };
   }
-  const missing = PIXAL3D_REQUIREMENTS.filter(([rel]) => !exists(path.join(cfg.dir, rel))).map(([rel, label]) => ({ path: rel, label }));
+  const requirements = cfg.backend === 'wsl'
+    ? [...PIXAL3D_REQUIREMENTS.filter(([rel]) => rel !== 'python_embeded/python.exe'), ['wsl-ready.json', 'Verified ROCm WSL runtime']]
+    : cfg.backend === 'windows-rocm'
+      ? [...PIXAL3D_REQUIREMENTS, ['native-ready.json', 'Verified native Windows ROCm runtime']]
+      : PIXAL3D_REQUIREMENTS;
+  const missing = requirements.filter(([rel]) => !exists(path.join(cfg.dir, rel))).map(([rel, label]) => ({ path: rel, label }));
   if (missing.length) {
     const names = missing.slice(0, 3).map((m) => m.label).join('; ') + (missing.length > 3 ? ` and ${missing.length - 3} more` : '');
     return { installed: false, missing, message: `Pixal3D is not fully installed (${cfg.dir}): missing - ${names}. See ASTRAFORGE_README.md in that folder.` };
@@ -92,12 +170,13 @@ export async function pixal3dStatus({ cfg = pixal3dConfig(), fetchFn = fetch, ex
   const state = pixal3dInstallState(cfg, exists);
   const running = state.installed ? await probe(cfg.url, 1200, fetchFn) : false;
   return {
-    installed: state.installed, running, url: cfg.url, dir: cfg.dir, missing: state.missing, message: state.message,
+    installed: state.installed, running, url: cfg.url, dir: cfg.dir, backend: cfg.backend, missing: state.missing, message: state.message,
     startedByStudio: !!child && !child.killed, estimate: PIXAL3D_ESTIMATE,
   };
 }
 
 let child = null;
+let childCfg = null;
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Environment of "Start ComfyUI (Pixal3D, 8191).bat": caches inside the install, no system CUDA/Python variables. */
@@ -149,16 +228,26 @@ export async function startPixal3dRuntime(o = {}) {
     onProgress?.('Pixal3D is already starting');
   } else {
     onProgress?.('Starting the Pixal3D engine (the first start takes 1-2 minutes)');
-    const python = path.join(cfg.dir, 'python_embeded', 'python.exe'), tempDir = pixal3dTempDir(runtimeDir), logFile = pixal3dLogFile(runtimeDir);
+    const tempDir = pixal3dTempDir(runtimeDir), logFile = pixal3dLogFile(runtimeDir);
+    const nativeLaunch = cfg.backend === 'windows-rocm' ? buildNativePixal3DLaunch({
+      config: cfg,
+      descriptor: { id: 'windows-rocm', runtimeRoot: cfg.dir, pythonPath: path.join(cfg.dir, 'python_embeded', 'python.exe') },
+      tempDir, dbFile: path.join(runtimeDir, 'pixal3d.db'),
+    }) : null;
+    const executable = cfg.backend === 'wsl' ? 'wsl.exe' : nativeLaunch?.command || path.join(cfg.dir, 'python_embeded', 'python.exe');
+    const args = cfg.backend === 'wsl'
+      ? pixal3dWslArgs(cfg, runtimeDir)
+      : nativeLaunch?.args || pixal3dArgs(cfg, tempDir, path.join(runtimeDir, 'pixal3d.db'));
     await fs.mkdir(tempDir, { recursive: true });   // also creates runtimeDir
     const fd = openSync(logFile, 'a');
     try {
-      child = spawnFn(python, pixal3dArgs(cfg, tempDir, path.join(runtimeDir, 'pixal3d.db')), { cwd: cfg.dir, windowsHide: true, detached: true, stdio: ['ignore', fd, fd], env: pixal3dEnv(cfg) });
+      child = spawnFn(executable, args, { cwd: nativeLaunch?.cwd || cfg.dir, windowsHide: true, detached: true, stdio: ['ignore', fd, fd], env: pixal3dEnv(cfg, nativeLaunch?.env || process.env) });
+      childCfg = cfg;
       child.unref?.();
     } finally { closeSync(fd); }
     const mine = child;
-    mine.on?.('error', (e) => { void fs.appendFile(logFile, 'spawn error: ' + e.message + '\n').catch(() => {}); if (child === mine) child = null; });
-    mine.on?.('exit', () => { if (child === mine) child = null; });
+    mine.on?.('error', (e) => { void fs.appendFile(logFile, 'spawn error: ' + e.message + '\n').catch(() => {}); if (child === mine) { child = null; childCfg = null; } });
+    mine.on?.('exit', () => { if (child === mine) { child = null; childCfg = null; } });
     await fs.writeFile(path.join(runtimeDir, 'pixal3d.pid'), String(mine.pid || '')).catch(() => {});
   }
   const started = Date.now(), mine = child;
@@ -175,12 +264,17 @@ export async function startPixal3dRuntime(o = {}) {
 }
 
 /** Stop only the instance this studio process started (called from runtime.mjs on shutdown). */
-export function stopOwnedPixal3d() {
+export function stopOwnedPixal3d({ spawnFn = spawn } = {}) {
   if (!child) return;
-  if (process.platform === 'win32') spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }).on('error', () => {});
-  else child.kill();
+  const owned = child, cfg = childCfg;
+  if (cfg?.backend === 'wsl') {
+    spawnFn('wsl.exe', ['-d', cfg.wslDistro || 'AstraForge-AMD', '--terminate'], { windowsHide: true, stdio: 'ignore' }).on('error', () => {});
+  } else if (process.platform === 'win32') {
+    spawnFn('taskkill', ['/PID', String(owned.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }).on('error', () => {});
+  } else owned.kill();
   child = null;
+  childCfg = null;
 }
 
 /** Test hook: forget the child without killing it. */
-export function _resetPixal3dRuntime() { child = null; }
+export function _resetPixal3dRuntime() { child = null; childCfg = null; }

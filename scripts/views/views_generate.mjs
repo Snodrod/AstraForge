@@ -176,19 +176,29 @@ export async function views_generate(o) {
       const r = await generateMvadapterViews({
         front, slots: todo, workDir: path.join(dir, 'work'), comfyUrl: o.comfyUrl || DEFAULT_COMFY_URL,
         size: o.size, steps: o.steps, seed: o.seed, signal: o.signal, onProgress: say,
+        prompt: o.prompt, negative: o.negative,
       });
       for (const [slot, file] of Object.entries(r.files)) {
         await fs.copyFile(file, rawPath(dir, slot));
         views.slots[slot] = {
           source: 'mvadapter', provider: 'mvadapter', file: 'raw/' + slot + '.png', seconds: round1(r.seconds), size: r.size, steps: r.steps, seed: r.seed,
-          azimuth: SLOT_META[slot].azimuth,
+          azimuth: SLOT_META[slot].azimuth, prompt: o.prompt, negative: o.negative,
           generatedAt: now(),
         };
       }
       timings.mvadapter = r.seconds;
-      if (r.frontGenerated) await fs.copyFile(r.frontGenerated, path.join(dir, 'work', 'mvadapter_front.png'));
+      if (r.frontGenerated) {
+        await fs.copyFile(r.frontGenerated, path.join(dir, 'work', 'mvadapter_front.png'));
+        if (o.useGeneratedFront === true) {
+          await fs.copyFile(r.frontGenerated, rawPath(dir, 'front'));
+          views.slots.front = {
+            source: 'mvadapter', provider: 'mvadapter', file: 'raw/front.png', seconds: round1(r.seconds), size: r.size, steps: r.steps, seed: r.seed,
+            azimuth: 0, prompt: o.prompt, negative: o.negative, generatedAt: now(),
+          };
+        }
+      }
       if (views.normalized) views.normalized.stale = true;
-      views.providers.push({ provider, slots: Object.keys(r.files), seconds: r.seconds, size: r.size, steps: r.steps, seed: r.seed, at: now() });
+      views.providers.push({ provider, slots: Object.keys(r.files), seconds: r.seconds, size: r.size, steps: r.steps, seed: r.seed, prompt: o.prompt, negative: o.negative, at: now() });
       await saveViews(dir, views);
     }
   }
