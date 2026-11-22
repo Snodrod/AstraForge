@@ -31,10 +31,10 @@ under the PolyForm Noncommercial License 1.0.0 (see LICENSE).
 7. **MIT parts.** Code that runs inside GPL programs (scripts/blender/, data/runtime/custom_nodes/AstraForgeMesh/,
    installer/mvadapter/, installer/pixal3d/) remains under the MIT License.
 8. **Payment and cancellation.** Subscriptions are sold through the payment provider shown at checkout (lava.top or
-   Polar). From 20 November 2026, new subscriptions cost USD 10, EUR 10, or RUB 990 per month, or
-   USD 120, EUR 120, or RUB 11,880 per year, depending on the payment currency. One year of commercial access
-   by one-time SBP payment costs RUB 11,880 and does not renew automatically. Subscriptions started before
-   20 November 2026 keep their original price for as long as they remain active.
+   Polar). From 22 November 2026, new subscriptions cost USD 9.49, EUR 9.49, or RUB 990 per month, or
+   USD 99, EUR 99, or RUB 9,900 per year, depending on the payment currency. One year of commercial access
+   by one-time SBP payment costs RUB 9,900 and does not renew automatically. An active subscription keeps
+   the price it started with for as long as it remains active.
    You can cancel at any time; your license and updates continue until the end of the paid period.
    Refunds follow the provider's rules; a refunded or charged-back subscription ends the commercial license
    immediately.
@@ -80,9 +80,9 @@ English version — above; при расхождении действует ан
 7. **Части под MIT.** Код, работающий внутри программ под GPL (`scripts/blender/`, `data/runtime/custom_nodes/AstraForgeMesh/`,
    `installer/mvadapter/`, `installer/pixal3d/`), остаётся под лицензией MIT.
 8. **Оплата и отмена.** Подписка продаётся через платёжный сервис, указанный при оплате (lava.top или Polar).
-   С 20 ноября 2026 года новая подписка стоит 10 $, 10 € или 990 ₽ в месяц либо 120 $, 120 € или 11 880 ₽ в год
-   в зависимости от валюты оплаты. Год коммерческого доступа при разовой оплате по СБП стоит 11 880 ₽,
-   автопродления нет. У подписок, оформленных до 20 ноября 2026 года, сохраняется прежняя цена, пока подписка действует.
+   С 22 ноября 2026 года новая подписка стоит 9,49 $, 9,49 € или 990 ₽ в месяц либо 99 $, 99 € или 9 900 ₽ в год
+   в зависимости от валюты оплаты. Год коммерческого доступа при разовой оплате по СБП стоит 9 900 ₽,
+   автопродления нет. Действующая подписка сохраняет цену, по которой оформлена, пока не прервётся.
    Отменить можно в любой момент; лицензия и обновления действуют до конца оплаченного срока. Возвраты — по правилам
    платёжного сервиса; при возврате или чарджбэке коммерческая лицензия прекращается сразу.
 9. **Без гарантий.** Насколько позволяет закон, AstraForge предоставляется как есть, без гарантий, и лицензиар не
