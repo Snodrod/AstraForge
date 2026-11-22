@@ -1,6 +1,6 @@
 # Terms of Service
 
-Last updated: October 30, 2026
+Last updated: November 22, 2026
 
 ## Who we are
 
@@ -15,13 +15,13 @@ AstraForge is a desktop application for Windows: a local 3D asset studio for gam
 
 **Free Base version.** AstraForge Base is free under the PolyForm Noncommercial License 1.0.0 — non-commercial use only, and it does not include updates.
 
-**Subscription.** For $5/month or $49/year you get a commercial-use license for AstraForge and for everything you make with it, plus all updates while your subscription is active. Assets created while your subscription was active stay licensed for commercial use forever. The full commercial license text is here: https://github.com/Snodrod/AstraForge/blob/master/COMMERCIAL-LICENSE.md
+**Subscription.** New subscriptions cost $9.49, €9.49 or 990 ₽ per month, or $99, €99 or 9 900 ₽ per year, depending on the payment currency. You get a commercial-use license for AstraForge and for everything you make with it, plus all updates while your subscription is active. Assets created while your subscription was active stay licensed for commercial use forever. The full commercial license text is here: https://github.com/Snodrod/AstraForge/blob/master/COMMERCIAL-LICENSE.md
 
 ## Subscription and billing
 
 Payments are processed by our reseller and Merchant of Record (for example Polar or Creem, and lava.top for Russia), which handles payment data, taxes and invoices. We never see full card numbers.
 
-Subscriptions renew until cancelled. You can cancel at any time; access continues to the end of the paid period. Refund rules are set out in our Refund Policy.
+Subscriptions renew until cancelled. An active subscription keeps the price it started with for as long as it remains active. A one-time year of commercial access by SBP costs 9 900 ₽ and does not renew automatically. You can cancel a subscription at any time; access continues to the end of the paid period. Refund rules are set out in our Refund Policy.
 
 ## License keys and devices
 
