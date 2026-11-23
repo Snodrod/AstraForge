@@ -2,11 +2,12 @@
 
 [Русская версия: README.ru.md](README.ru.md)
 
-> **Free base version · Commercial license by subscription** — https://snodrod.github.io/AstraForge/
+> **AstraForge — AI 3D for games. The current version lives at [dops.media](https://dops.media).**
 >
-> - **Free:** [AstraForge-Setup.exe](https://github.com/Snodrod/AstraForge/releases/latest) (0.4.6, *Quick* ≈ 30 GB or *Full* ≈ 95 GB). Personal, educational and other **noncommercial** use only, no updates — [PolyForm Noncommercial 1.0.0](LICENSE-0.4.2.md).
-> - **Subscription — $9.49/month or $99/year (990 ₽ / 9 900 ₽):** use AstraForge and everything you make with it **commercially**, and get every update on release day — [subscription license](COMMERCIAL-LICENSE.md). [Subscribe](https://snodrod.github.io/AstraForge/#subscribe).
-> - The source code in this repository is the older version 0.3.0 under the MIT License ([LICENSE](LICENSE)). Versions 0.4.2+ are distributed under the licenses above.
+> - **Download:** [dops.media](https://dops.media) — Windows 10/11, Linux x64 and macOS 13+ (Apple Silicon); NVIDIA or AMD Radeon GPU from 8 GB. 7-day trial with a key sent to your email.
+> - **Subscription — $9.49/month or $99/year (990 ₽ / 9 900 ₽):** every update on release day and commercial use — [dops.media/#pricing](https://dops.media/#pricing).
+> - Guides and release notes: [dops.media/guides](https://dops.media/guides) · [dops.media/news](https://dops.media/news).
+> - This repository is an **archive**: the README below describes the old 0.4.x line, and the source code here is version 0.3.0 under the MIT License ([LICENSE](LICENSE)). Newer versions are distributed only from dops.media under their own licences.
 
 AstraForge is a Windows app that turns a picture or a text prompt into a game-ready 3D asset on your own machine: concept → geometry → editor → rig and animation → effects → export (GLB, OBJ, WebM, PNG, isometric sprite sheets, Godot packages). The server listens on `127.0.0.1` only. The UI is available in English and Russian (English by default, switch in the app).
 
