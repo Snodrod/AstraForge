@@ -1,138 +1,21 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AstraForge — локальная 3D-студия для игр</title>
-<meta name="description" content="AstraForge — локальная 3D-студия: концепт → 3D-модель → риг → анимации → эффекты → Godot и спрайты. Бесплатная базовая версия для некоммерческого использования; подписка 9,49 $ в месяц или 99 $ в год — коммерческое использование и все обновления.">
-<meta property="og:title" content="AstraForge — локальная 3D-студия для игр">
-<meta property="og:description" content="Бесплатно — для некоммерческого использования; подписка — коммерческое использование и обновления. Концепт → 3D → риг → анимации → эффекты → Godot.">
-<meta property="og:image" content="https://snodrod.github.io/AstraForge/img/studio.jpg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<style>
-  :root { --bg:#050605; --card:rgba(255,255,255,.05); --line:rgba(255,255,255,.12); --ink:#f2f4ef; --dim:#9aa39a; --lime:#c8f169; --amber:#ffbd68; }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { background:var(--bg); color:var(--ink); font-family:Inter,system-ui,sans-serif; line-height:1.55; }
-  body::before { content:""; position:fixed; inset:0; pointer-events:none;
-    background:radial-gradient(900px 500px at 50% -10%, rgba(200,241,105,.16), transparent 70%); }
-  main { max-width:1040px; margin:0 auto; padding:56px 20px 80px; position:relative; }
-  .brand { font-weight:800; letter-spacing:-.02em; font-size:20px; }
-  .brand span { color:var(--dim); font-weight:600; }
-  h1 { font-size:clamp(38px,7vw,72px); line-height:1.02; letter-spacing:-.035em; font-weight:800; margin:40px 0 18px; }
-  h1 em { font-style:normal; color:var(--lime); }
-  .lead { font-size:clamp(17px,2.2vw,21px); color:var(--dim); max-width:700px; }
-  .cta { display:flex; flex-wrap:wrap; gap:12px; margin-top:26px; }
-  .shot { margin:40px 0 8px; border-radius:18px; border:1px solid var(--line); overflow:hidden; box-shadow:0 30px 80px rgba(0,0,0,.6); }
-  .shot img { display:block; width:100%; height:auto; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; margin-top:44px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:28px; display:flex; flex-direction:column; gap:12px; scroll-margin-top:24px; }
-  .card h2 { font-size:26px; letter-spacing:-.02em; }
-  .tag { align-self:flex-start; font-size:13px; font-weight:600; padding:5px 12px; border-radius:99px; border:1px solid var(--line); color:var(--dim); }
-  .tag.lime { color:var(--lime); border-color:rgba(200,241,105,.5); }
-  .tag.amber { color:var(--amber); border-color:rgba(255,189,104,.5); }
-  .card p, .card li { color:var(--dim); font-size:16px; }
-  .card ul { padding-left:18px; display:flex; flex-direction:column; gap:6px; }
-  .btn { display:inline-block; text-align:center; text-decoration:none; font-weight:800; font-size:17px;
-    padding:15px 22px; border-radius:99px; background:var(--lime); color:#0b0f0c; }
-  .card .btn { margin-top:auto; }
-  .btn.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
-  .plans { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .plan { border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
-  .plan b { display:block; font-size:22px; color:var(--ink); }
-  .plan small { color:var(--dim); font-size:13px; }
-  .note { font-size:14px; color:var(--dim); }
-  .links { margin-top:48px; display:flex; flex-wrap:wrap; gap:12px; }
-  .links a { color:var(--ink); text-decoration:none; border:1px solid var(--line); border-radius:99px; padding:10px 18px; font-size:15px; }
-  footer { margin-top:56px; color:var(--dim); font-size:14px; }
-  footer a { color:var(--dim); }
-</style>
+<title>AstraForge — AI 3D for games · moved to dops.media</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="canonical" href="https://dops.media/">
+<meta http-equiv="refresh" content="0; url=https://dops.media/">
+<meta name="description" content="AstraForge — AI 3D for games now lives at dops.media: local studio for Windows, Linux and Mac, NVIDIA or AMD GPU.">
+<script>
+  var ru = (navigator.language || '').toLowerCase().indexOf('ru') === 0;
+  location.replace(ru ? 'https://dops.media/ru' : 'https://dops.media/');
+</script>
+<style>body{font:16px/1.5 system-ui,sans-serif;max-width:640px;margin:15vh auto;padding:0 16px;color:#111}a{color:#4a6b00}</style>
 </head>
 <body>
-<main>
-  <div class="brand" style="display:flex;justify-content:space-between;align-items:center">AstraForge <span>· local studio</span><span style="margin-left:auto"><a href="#" data-setlang="ru" style="color:inherit">RU</a> · <a href="#" data-setlang="en" style="color:inherit">EN</a></span></div>
-  <h1 data-i18n="h1">3D-студия для игр<br><em>у тебя на компьютере.</em></h1>
-  <p class="lead" data-i18n="lead">Концепт → 3D-модель → риг → анимации → эффекты → пакет для Godot или спрайты. Всё локально, без облака. Попробовать — бесплатно, для личных и некоммерческих проектов. Подписка — право использовать студию и всё, что в ней сделано, в коммерческих целях, и каждое обновление в день выхода.</p>
-  <div class="cta"><a class="btn ghost" href="#download" data-i18n="cta_dl">Скачать бесплатно</a><a class="btn" href="#subscribe" data-i18n="cta_sub">Подписка и коммерческая лицензия</a></div>
-
-  <div class="shot"><img src="img/studio.jpg" alt="Интерфейс AstraForge: рыцарь с эффектом огня в сцене" width="960" height="590"></div>
-
-  <div class="grid">
-    <section class="card" id="download">
-      <span class="tag lime" data-i18n="free">Бесплатно · некоммерческая лицензия</span>
-      <h2 data-i18n="dl_h">Скачать бесплатно</h2>
-      <p data-i18n="dl_p">Один установщик для Windows. Сначала он сам проверяет компьютер — что уже стоит и каких версий — и показывает программы и модели с галочками. Наборы: «Быстрая» (≈ 30 ГБ, основные движки), «Полная» (≈ 135 ГБ, всё сразу, включая 2D-движки FLUX.2 и Qwen-Image) и «Облегчённая» для компьютера без видеокарты NVIDIA (≈ 3 ГБ: Blender, риг, анимации, спрайты, эффекты и Godot для своих моделей). Отмеченное установщик скачает и поставит сам, уже установленное не трогает.</p>
-      <ul data-i18n="dl_ul"><li>Базовая версия: для личного, учебного и другого некоммерческого использования</li><li>Бесплатные обновления ставятся сами: студия скачивает их в фоне и ставит при следующем запуске. Часть новых версий — только для подписчиков</li><li>Продавать созданное, делать коммерческие игры и заказы — только с подпиской</li><li>Для 3D по картинке нужна видеокарта NVIDIA (проверено на RTX 4070 12 ГБ), без неё — облегчённая установка. Windows 10/11</li></ul>
-      <a class="btn" href="https://github.com/Snodrod/AstraForge/releases/latest" data-i18n="dl_btn">Скачать установщик</a>
-    </section>
-
-    <section class="card" id="subscribe">
-      <span class="tag amber" data-i18n="price">Подписка</span>
-      <h2 data-i18n="sub_h">Коммерческая лицензия и обновления</h2>
-      <p data-i18n="sub_p">Подписка разрешает использовать AstraForge и всё, что в нём сделано, в коммерческих целях — игры, заказы, продажа ассетов, монетизируемые ролики. И всё, что я добавляю и исправляю, приходит к вам в день выхода: студия сама ставит свежую версию.</p>
-      <div class="plans">
-        <div class="plan"><small data-i18n="m_t">Месяц</small><b data-i18n="m_p">9,49 $</b><small data-i18n="m_r">990 ₽ · 9,49 €</small></div>
-        <div class="plan"><small data-i18n="y_t">Год</small><b data-i18n="y_p">99 $</b><small data-i18n="y_r">9 900 ₽ · 99 €</small></div>
-      </div>
-      <ul data-i18n="sub_ul"><li>Коммерческое использование студии и всего созданного; сделанное при подписке — ваше навсегда</li><li>Новые инструменты, 3D-движки, эффекты и исправления — в день выпуска</li><li>Ключ приходит на почту: один ключ — одна копия — один компьютер, перенести на другой можно</li><li>Отмена в любой момент: ключ действует до конца оплаченного срока</li><li>Оплата картой любой страны или российской картой</li></ul>
-      <a class="btn" id="sub-btn" href="https://keys.dops.media/buy" data-i18n="sub_btn">Оформить подписку</a>
-      <p class="note" data-i18n="sub_ru">Российские карты — через Lava Top, международные — через Polar. Год разово по СБП — 9 900 ₽.</p>
-      <p class="note" data-i18n="sub_note">Месяц или год выбираются на странице оплаты. Условия: <a href="https://github.com/Snodrod/AstraForge/blob/master/COMMERCIAL-LICENSE.md" style="color:#c8f169">лицензия подписки</a>.</p>
-    </section>
-
-    <section class="card" id="activate">
-      <span class="tag" data-i18n="act_tag">После оплаты</span>
-      <h2 data-i18n="act_h">Как включить обновления</h2>
-      <ul data-i18n="act_ul"><li>Придёт письмо с ключом вида AF-XXXXXX-XXXXXX-XXXXXX-XXXXXX</li><li>В студии откройте «О программе» → «Подписка», вставьте ключ и нажмите «Ввести ключ»</li><li>Готово: при каждом запуске студия сама ставит свежую версию</li></ul>
-      <p class="note" data-i18n="act_note">Нужна версия 0.4.3 или новее. Ключ закрепляется за компьютером, на котором введён. Ключ не дошёл или потерялся — напишите на support@dops.media, вышлем заново.</p>
-    </section>
-  </div>
-
-  <div class="links">
-    <a href="https://www.youtube.com/@MywayDorn" data-i18n="l_yt">▶ Видеоинструкции на канале MyWay</a>
-    <a href="https://github.com/Snodrod/AstraForge" data-i18n="l_gh">GitHub и лицензия</a>
-    <a href="https://dalink.to/artemdorn" data-i18n="l_don">Поддержать донатом</a>
-  </div>
-
-  <footer data-i18n="foot">Артём Доронин · MyWay · Dops Media. С версии 0.4.2: бесплатно — PolyForm Noncommercial 1.0.0, коммерческое использование — по подписке. Лицензии компонентов — в окне «О программе».<br>Поддержка: <a href="mailto:support@dops.media">support@dops.media</a> · <a href="https://github.com/Snodrod/AstraForge/blob/master/TERMS.md">Условия использования</a> · <a href="https://github.com/Snodrod/AstraForge/blob/master/PRIVACY.md">Конфиденциальность</a> · <a href="https://github.com/Snodrod/AstraForge/blob/master/REFUND.md">Возврат средств</a></footer>
-</main>
-<script>
-  // Оплата подписки — lava.top (решение владельца 29.10.2026): на одной странице месяц/год и валюта.
-  // Оплата (с 31.10.2026): только lava.top через keys.dops.media/buy (счёт через API, ₽ / $ / €). Polar — резерв, на сайте не показан. Ключ AF-… выдаёт сервер ключей по уведомлению.
-  var EN = {
-    h1: '3D studio for games<br><em>on your own PC.</em>',
-    lead: 'Concept → 3D model → rig → animations → effects → Godot package or sprites. Fully local, no cloud. Try it free for personal and noncommercial projects. A subscription gives you the right to use the studio and everything you make with it commercially, plus every update on release day.',
-    cta_dl: 'Download free', cta_sub: 'Subscription & commercial license',
-    free: 'Free · noncommercial license', dl_h: 'Download for free',
-    dl_p: 'One installer for Windows. It first checks your computer — what is already installed and which versions — and lists programs and models with checkboxes. Presets: "Quick" (≈ 30 GB, core engines), "Full" (≈ 135 GB, everything, including the 2D engines FLUX.2 and Qwen-Image) and "Lite" for a PC without an NVIDIA card (≈ 3 GB: Blender, rig, animations, sprites, effects and Godot for your own models). The installer downloads and installs what you tick by itself and leaves what is already installed alone.',
-    dl_ul: '<li>Base version for personal, educational and other noncommercial use</li><li>Free updates install themselves: the studio downloads them in the background and installs them on the next start. Some new versions are for subscribers only</li><li>Selling what you make, commercial games and client work require a subscription</li><li>3D from images needs an NVIDIA GPU (tested on RTX 4070 12 GB); without one, use the Lite setup. Windows 10/11</li>',
-    dl_btn: 'Download the installer',
-    price: 'Subscription', sub_h: 'Commercial license and updates',
-    sub_p: 'A subscription lets you use AstraForge and everything you make with it commercially — games, client work, selling assets, monetized videos. And everything I add and fix reaches you on release day: the studio installs the latest version by itself.',
-    m_t: 'Monthly', m_p: '$9.49', m_r: '€9.49 · 990 ₽', y_t: 'Yearly', y_p: '$99', y_r: '€99 · 9 900 ₽',
-    sub_ul: '<li>Commercial use of the studio and everything you make; what you made while subscribed stays yours forever</li><li>New tools, 3D engines, effects and fixes — on release day</li><li>Your key arrives by email: one key — one copy — one computer, you can move it to another one</li><li>Cancel any time: the key stays valid until the end of the paid period</li><li>Pay with a card from any country</li>',
-    sub_btn: 'Subscribe', sub_ru: 'Pay with a Russian card via Lava Top or an international card via Polar. A one-time year via SBP costs 9 900 ₽.', sub_note: 'Choose monthly or yearly on the payment page. Terms: <a href="https://github.com/Snodrod/AstraForge/blob/master/COMMERCIAL-LICENSE.md" style="color:#c8f169">subscription license</a>.',
-    act_tag: 'After payment', act_h: 'How to turn on updates',
-    act_ul: '<li>You get an email with a key like AF-XXXXXX-XXXXXX-XXXXXX-XXXXXX</li><li>In the studio open About → Subscription, paste the key and press "Enter key"</li><li>Done: the studio installs the latest version on every launch</li>',
-    act_note: 'Requires version 0.4.3 or newer. The key is bound to the computer where you enter it. Key did not arrive or got lost? Email support@dops.media and we will resend it.',
-    l_yt: '▶ Video tutorials on the MyWay channel', l_gh: 'GitHub and license', l_don: 'Support with a donation',
-    foot: 'Artem Doronin · MyWay · Dops Media. Since 0.4.2: free under PolyForm Noncommercial 1.0.0, commercial use with a subscription. Component licenses are listed in the About window.<br>Support: <a href="mailto:support@dops.media">support@dops.media</a> · <a href="https://github.com/Snodrod/AstraForge/blob/master/TERMS.md">Terms of Service</a> · <a href="https://github.com/Snodrod/AstraForge/blob/master/PRIVACY.md">Privacy Policy</a> · <a href="https://github.com/Snodrod/AstraForge/blob/master/REFUND.md">Refund Policy</a>'
-  };
-  var RU = {}; document.querySelectorAll('[data-i18n]').forEach(function (e) { RU[e.dataset.i18n] = e.innerHTML; });
-  function pick() {
-    try { var q = new URLSearchParams(location.search).get('lang'); if (q) return q; var s = localStorage.getItem('af_lang'); if (s) return s; } catch (e) {}
-    return /^ru|^uk|^be|^kk/i.test(navigator.language || '') ? 'ru' : 'en';
-  }
-  function apply(lang) {
-    var T = lang === 'ru' ? RU : EN; document.documentElement.lang = lang;
-    document.querySelectorAll('[data-i18n]').forEach(function (e) { if (T[e.dataset.i18n] != null) e.innerHTML = T[e.dataset.i18n]; });
-    document.title = lang === 'ru' ? 'AstraForge — локальная 3D-студия для игр' : 'AstraForge — local 3D studio for games';
-    var sb = document.getElementById('sub-btn'); if (sb) sb.href = 'https://keys.dops.media/buy?lang=' + lang;
-  }
-  document.querySelectorAll('[data-setlang]').forEach(function (a) {
-    a.addEventListener('click', function (ev) { ev.preventDefault(); try { localStorage.setItem('af_lang', a.dataset.setlang); } catch (e) {} apply(a.dataset.setlang); });
-  });
-  apply(pick());
-</script>
+<h1>AstraForge — AI 3D for games</h1>
+<p>AstraForge has moved to <a href="https://dops.media/">dops.media</a> — current version, 7-day trial, guides and news.</p>
+<p lang="ru">AstraForge переехала на <a href="https://dops.media/ru">dops.media/ru</a> — актуальная версия, проба на 7 дней, гайды и новости.</p>
 </body>
 </html>
