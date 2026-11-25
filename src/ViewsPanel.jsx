@@ -29,7 +29,7 @@ export function EngineSelect({engine, onChange, pixal}) {
   </div>;
 }
 
-export default function ViewsPanel({image, notify, onBuild, buildBusy, engineReady, engine = 'hunyuan', onEngine, pixal}) {
+export default function ViewsPanel({image, notify, onBuild, buildBusy, engineReady, engine = 'hunyuan', onEngine, pixal, quality = 'standard', onQuality}) {
   const t = useT();
   const [set, setSet] = useState(null);
   const [status, setStatus] = useState(null);
@@ -105,6 +105,7 @@ export default function ViewsPanel({image, notify, onBuild, buildBusy, engineRea
   const providerWhy = provider === 'codex' ? status?.codex?.message : status?.mvadapter?.reasons?.join('; ');
   const missing = FILLABLE.filter(s => !set?.slots?.[s]?.filled);
   const disabled = busy || running || !set;
+  const amdMulti1024 = engine === 'pixal3d' && pixal?.backend === 'wsl' && !!set?.extraViews && quality !== 'draft';
 
   if (!image) {
     return <p className="field-note">{t('views.empty')}</p>;
@@ -153,9 +154,13 @@ export default function ViewsPanel({image, notify, onBuild, buildBusy, engineRea
     {task?.status === 'failed' && !running && <p className="field-note views-warn">{task.message}</p>}
 
     {onEngine && <EngineSelect engine={engine} onChange={onEngine} pixal={pixal} />}
-    <button className="primary full views-build" disabled={disabled || !set?.canBuild || !set?.extraViews || buildBusy || !engineReady} onClick={() => onBuild(set.id)}>
+    <button className="primary full views-build" disabled={disabled || !set?.canBuild || !set?.extraViews || buildBusy || !engineReady || amdMulti1024} onClick={() => onBuild(set.id)}>
       {buildBusy ? <Loader2 className="spin" size={16} /> : <Box size={16} />}{t('views.build')}
     </button>
+    {amdMulti1024 && <div className="field-note views-warn">
+      <p>{t('views.build.amd1024Blocked')}</p>
+      {onQuality && <button className="secondary full" onClick={() => onQuality('draft')}>{t('views.build.useDraft')}</button>}
+    </div>}
     <p className="field-note">{!set?.extraViews
       ? t('views.build.needView')
       : t('views.build.note', {engine: engine === 'pixal3d' ? 'Pixal3D' : 'Hunyuan3D-2mv', n: 1 + set.extraViews}) + ' '

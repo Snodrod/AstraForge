@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { pixal3dWorkflow } from './schema.mjs';
-import { pixal3dConfig, startPixal3dRuntime } from './pixal3d.mjs';
+import { pixal3dConfig, startPixal3dRuntime, validatePixal3dRequest, preflightPixal3dVram } from './pixal3d.mjs';
 import { acquireEngineGpu, freeIfIdle, engineQueue } from './gpu-handover.mjs';
 import { validateGeneratedMesh, maxMeshBytes } from './mesh-validation.mjs';
 import { normalizeGlb } from './glb-normalize.mjs';
@@ -33,6 +33,7 @@ export const PIXAL3D_PHASES = {
   Trellis2SimplifyMesh: [94, 95, 'Simplifying the mesh'],
   Trellis2FillHolesNicelyWithMeshlib: [95, 97, 'Closing holes · meshlib'],
   Trellis2MeshWithVoxelToTrimesh: [97, 98, 'Assembling the mesh'],
+  Trellis2MeshTexturingPixal3DMultiView: [97, 98, 'Painting mesh vertices · AMD'],
   Trellis2ExportMesh: [98, 98, 'Saving GLB'],
 };
 
@@ -43,6 +44,25 @@ export function explainPixal3dError(text) {
   if (/dinov3/i.test(t) && /(not found|No such file|\u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d|Exception)/i.test(t)) return 'The DINOv3 weights for Pixal3D were not found. See ASTRAFORGE_README.md in the ComfyUI-Pixal3D folder.';
   if (/Interrupted|InterruptProcessingException|processing interrupted/i.test(t)) return 'Generation aborted';
   return t.slice(0, 900) || 'Pixal3D could not build the geometry. See data/runtime/pixal3d.log.';
+}
+
+/** Serializable job metadata; the GLB buffer intentionally stays out of job JSON. */
+export function pixal3dJobDetails(result) {
+  return {
+    seconds: result.seconds,
+    slots: result.slots,
+    targetFaces: result.targetFaces,
+    vertexColors: result.vertexColors,
+    uvTexture: result.uvTexture,
+    vramPeakMb: result.vram?.peak_used_mb ?? null,
+    vramBaselineMb: result.vram?.baseline_used_mb ?? null,
+    scale: result.normalization.scale,
+    handover: result.handover,
+    backend: result.backend || 'windows',
+    phases: result.phases || [],
+    fallbackEvents: result.fallbackEvents || [],
+    output: result.output || null,
+  };
 }
 
 async function comfyJson(url, options = {}) {
@@ -87,7 +107,7 @@ async function cancelPrompt(url, promptId) {
 }
 
 /** Progress follower: websocket events -> onProgress({percent, message}). Never throws; progress is optional. */
-function followProgress({ url, clientId, workflow, onProgress, getPromptId, WebSocketImpl, tickMs = 2000 }) {
+function followProgress({ url, clientId, workflow, onProgress, onPhase, getPromptId, WebSocketImpl, tickMs = 2000 }) {
   let phase = null, last = -1, phaseAt = 0, phaseSteps = false;
   const emit = (percent, message) => {
     percent = Math.max(0, Math.min(98, Math.round(percent)));
@@ -106,7 +126,12 @@ function followProgress({ url, clientId, workflow, onProgress, getPromptId, WebS
       if (v.data?.prompt_id && promptId && v.data.prompt_id !== promptId) return;
       if (v.type === 'executing' && v.data?.node) {
         const next = PIXAL3D_PHASES[workflow[v.data.node]?.class_type];
-        if (next && next !== phase) { phase = next; phaseAt = Date.now(); phaseSteps = false; }
+        if (next && next !== phase) {
+          phase = next;
+          phaseAt = Date.now();
+          phaseSteps = false;
+          onPhase?.(workflow[v.data.node]?.class_type, phaseAt);
+        }
         if (phase) emit(phase[0], phase[2]);
       } else if (v.type === 'progress' && phase && v.data?.max > 0) {
         phaseSteps = true;
@@ -139,17 +164,28 @@ function followProgress({ url, clientId, workflow, onProgress, getPromptId, WebS
 export async function generatePixal3d(o) {
   const { signal, onProgress, onPrompt, onWait, deps = {} } = o;
   const cfg = o.cfg || pixal3dConfig();
-  const seed = Number.isFinite(Number(o.seed)) ? Number(o.seed) : 1000, targetFaces = o.targetFaces || 700000;
+  const quality = o.quality || 'standard';
+  const seed = Number.isFinite(Number(o.seed)) ? Number(o.seed) : 1000, targetFaces = o.targetFaces || (quality === 'draft' ? 100000 : 700000);
   const files = Object.fromEntries(Object.entries(o.images || {}).filter(([, file]) => file));
   if (!files.front) throw new Error('Pixal3D requires a front view.');
   const slots = ['front', 'left', 'back', 'right'].filter((s) => files[s]);
   const tag = String(o.tag || randomUUID()).replace(/[^0-9a-zA-Z-]/g, '').slice(0, 24);
+  validatePixal3dRequest({ engine: 'pixal3d', quality, vertexColors: !!o.vertexColors, uvTexture: !!o.uvTexture }, cfg, { multi: slots.length > 1 });
 
   onProgress?.({ percent: 0, message: 'Checking the Pixal3D engine' });
   await (deps.start || startPixal3dRuntime)({ cfg, signal, onProgress: (message) => onProgress?.({ percent: 0, message }) });
   signal?.throwIfAborted();
+  if (quality !== 'draft') {
+    onProgress?.({ percent: 0, message: 'Checking free VRAM for Pixal3D 1024' });
+    let stats;
+    try { stats = await comfyJson(cfg.url + '/system_stats', { signal: AbortSignal.timeout(15000) }); } catch (error) {
+      if (error.name === 'AbortError') throw error;
+      throw Object.assign(new Error('Pixal3D could not read free VRAM for the 1024 profile. Restart the engine or use draft 512.'), { code: 'pixal3d_vram_unknown', recommendedQuality: 'draft' });
+    }
+    preflightPixal3dVram(stats, { quality });
+  }
 
-  const workflowFor = (names) => pixal3dWorkflow(names, { seed, prefix: 'astra/px-' + tag, targetFaces, sampler: o.sampler || 'heun', removeBackground: !!o.removeBackground });
+  const workflowFor = (names) => pixal3dWorkflow(names, { seed, prefix: 'astra/px-' + tag, targetFaces, sampler: o.sampler || 'heun', removeBackground: !!o.removeBackground, runtimeBackend: cfg.backend, quality, vertexColors: !!o.vertexColors, uvTexture: !!o.uvTexture });
   const wanted = [...new Set(Object.values(workflowFor(Object.fromEntries(slots.map((s) => [s, s])))).map((n) => n.class_type))];
   let info;
   try { info = await comfyJson(cfg.url + '/object_info', { signal: AbortSignal.timeout(30000) }); } catch { throw new Error('The Pixal3D engine is not responding. See data/runtime/pixal3d.log.'); }
@@ -167,7 +203,19 @@ export async function generatePixal3d(o) {
   });
   const clientId = randomUUID();
   let promptId = null, vramProbe = false;
-  const follower = followProgress({ url: cfg.url, clientId, workflow, onProgress, getPromptId: () => promptId, WebSocketImpl: deps.WebSocketImpl || WebSocket, tickMs: deps.tickMs });
+  const phases = [];
+  let activePhase = null;
+  const finishPhase = (endedAt = Date.now()) => {
+    if (!activePhase || activePhase.endedAt !== undefined) return;
+    activePhase.endedAt = endedAt;
+    activePhase.durationMs = endedAt - activePhase.startedAt;
+  };
+  const recordPhase = (name, startedAt) => {
+    finishPhase(startedAt);
+    activePhase = { name, startedAt };
+    phases.push(activePhase);
+  };
+  const follower = followProgress({ url: cfg.url, clientId, workflow, onProgress, onPhase: recordPhase, getPromptId: () => promptId, WebSocketImpl: deps.WebSocketImpl || WebSocket, tickMs: deps.tickMs });
   const started = Date.now();
   try {
     await follower.ready;
@@ -206,13 +254,15 @@ export async function generatePixal3d(o) {
     }
     onProgress?.({ percent: 98, message: 'Fetching and normalizing the GLB' });
     const raw = await downloadGlb(cfg.url, item, signal);
-    validateGeneratedMesh(raw);
+    validateGeneratedMesh(raw, { requireVertexColors: !!o.vertexColors, requireUvTexture: !!o.uvTexture });
     const normalized = normalizeGlb(raw);
-    validateGeneratedMesh(normalized.buffer);
+    const output = validateGeneratedMesh(normalized.buffer, { requireVertexColors: !!o.vertexColors, requireUvTexture: !!o.uvTexture });
     const vram = vramProbe ? await comfyJson(cfg.url + '/af/vram/stop', { method: 'POST', signal: AbortSignal.timeout(3000) }).catch(() => null) : null;
     vramProbe = false;
+    finishPhase();
     return {
-      buffer: normalized.buffer, seconds: Math.round((Date.now() - started) / 100) / 10, promptId, slots, seed, targetFaces, rawBytes: raw.length, url: cfg.url, vram, handover: gpu.handover || null,
+      buffer: normalized.buffer, seconds: Math.round((Date.now() - started) / 100) / 10, promptId, slots, seed, quality, targetFaces, vertexColors: !!o.vertexColors, uvTexture: !!o.uvTexture, rawBytes: raw.length, url: cfg.url, vram, handover: gpu.handover || null,
+      backend: cfg.backend || 'windows', phases, fallbackEvents: [], output: { vertices: output.vertices, triangles: output.triangles },
       normalization: { scale: normalized.scale, center: normalized.center, extentBefore: normalized.before.extent, extentAfter: normalized.after.extent },
     };
   } catch (error) {

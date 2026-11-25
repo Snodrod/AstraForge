@@ -1,0 +1,47 @@
+diff --git a/flex_gemm/ops/spconv/submanifold_conv3d.py b/flex_gemm/ops/spconv/submanifold_conv3d.py
+index eedb3a8..ab41f1d 100644
+--- a/flex_gemm/ops/spconv/submanifold_conv3d.py
++++ b/flex_gemm/ops/spconv/submanifold_conv3d.py
+@@ -6,6 +6,9 @@ from .. import spconv, utils
+ from ... import kernels
+ 
+ 
++EXPLICIT_GEMM_CHUNK_BYTES = 512 * 1024 * 1024
++
++
+ class SubMConv3dNeighborCache:
+     def __init__(self, **kwargs):
+         for k, v in kwargs.items():
+@@ -140,19 +143,20 @@ class SubMConv3dFunction(Function):
+         
+         if spconv.ALGORITHM == Algorithm.EXPLICIT_GEMM:        
+             neighbor_map = neighbor_cache['neighbor_map']
+-            
+-            # im2col
+-            im2col = torch.zeros((N * V, Ci), device=feats.device, dtype=feats.dtype)
+-            mask = neighbor_map.view(-1) != 0xffffffff
+-            im2col[mask] = feats[neighbor_map.view(-1).long()[mask]]
+-            im2col = im2col.view(N, V * Ci)
+-            
+-            # addmm
+             weight = weight.view(Co, V * Ci).transpose(0, 1)
+-            if bias is not None:
+-                output = torch.addmm(bias, im2col, weight)
+-            else:
+-                output = torch.mm(im2col, weight)
++            output = torch.empty((N, Co), device=feats.device, dtype=feats.dtype)
++            rows_per_chunk = max(1, EXPLICIT_GEMM_CHUNK_BYTES // (V * Ci * feats.element_size()))
++            for start in range(0, N, rows_per_chunk):
++                end = min(start + rows_per_chunk, N)
++                chunk_map = neighbor_map[start:end]
++                im2col = torch.zeros(((end - start) * V, Ci), device=feats.device, dtype=feats.dtype)
++                mask = chunk_map.view(-1) != 0xffffffff
++                im2col[mask] = feats[chunk_map.view(-1).long()[mask]]
++                im2col = im2col.view(end - start, V * Ci)
++                if bias is not None:
++                    output[start:end] = torch.addmm(bias, im2col, weight)
++                else:
++                    output[start:end] = torch.mm(im2col, weight)
+         
+         elif spconv.ALGORITHM == Algorithm.IMPLICIT_GEMM:
+             output = kernels.triton.sparse_submanifold_conv_fwd_implicit_gemm(

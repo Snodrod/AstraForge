@@ -1,0 +1,73 @@
+diff --git a/src/io.cu b/src/io.cu
+index 579cf16..d355f22 100644
+--- a/src/io.cu
++++ b/src/io.cu
+@@ -68,6 +68,21 @@ template <> struct TorchTypeMapping<float4> {
+ };
+ 
+ 
++static void memcpy_device_to_device_chunked(void* dst, const void* src, size_t bytes) {
++    constexpr size_t chunk_size = 4 * 1024 * 1024;
++    for (size_t offset = 0; offset < bytes; offset += chunk_size) {
++        const size_t remaining = bytes - offset;
++        const size_t count = remaining < chunk_size ? remaining : chunk_size;
++        CUDA_CHECK(cudaMemcpy(
++            static_cast<char*>(dst) + offset,
++            static_cast<const char*>(src) + offset,
++            count,
++            cudaMemcpyDeviceToDevice
++        ));
++    }
++}
++
++
+ template<typename T>
+ static torch::Tensor buffer_to_tensor(const Buffer<T> buffer) {
+     using Mapping = TorchTypeMapping<T>;
+@@ -85,12 +100,11 @@ static torch::Tensor buffer_to_tensor(const Buffer<T> buffer) {
+ 
+     static constexpr int dst_bytes = Mapping::sizeof_scalar * Mapping::channels;
+     if (sizeof(T) == dst_bytes) {
+-        CUDA_CHECK(cudaMemcpy(
++        memcpy_device_to_device_chunked(
+             tensor.data_ptr(),
+             buffer.ptr,
+-            count * sizeof(T),
+-            cudaMemcpyDeviceToDevice
+-        ));
++            count * sizeof(T)
++        );
+     } else {
+         CUDA_CHECK(cudaMemcpy2D(
+             tensor.data_ptr(),
+@@ -112,24 +126,16 @@ void CuMesh::init(const torch::Tensor& vertices, const torch::Tensor& faces) {
+     size_t num_faces = faces.size(0);
+     this->vertices.resize(num_vertices);
+     this->faces.resize(num_faces);
+-    CUDA_CHECK(cudaMemcpy2D(
++    memcpy_device_to_device_chunked(
+         this->vertices.ptr,
+-        sizeof(float3),
+         vertices.data_ptr<float>(),
+-        sizeof(float) * 3,
+-        sizeof(float) * 3,
+-        num_vertices,
+-        cudaMemcpyDeviceToDevice
+-    ));
+-    CUDA_CHECK(cudaMemcpy2D(
++        num_vertices * sizeof(float3)
++    );
++    memcpy_device_to_device_chunked(
+         this->faces.ptr,
+-        sizeof(int3),
+         faces.data_ptr<int>(),
+-        sizeof(int) * 3,
+-        sizeof(int) * 3,
+-        num_faces,
+-        cudaMemcpyDeviceToDevice
+-    ));
++        num_faces * sizeof(int3)
++    );
+ }
+ 
+ 

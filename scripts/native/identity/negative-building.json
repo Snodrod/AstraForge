@@ -1,0 +1,5 @@
+{
+  "version": "1.0.0",
+  "kind": "building",
+  "terms": ["extra floors", "extra windows", "extra doors", "duplicate towers", "duplicated wings", "changed roof structure", "changed footprint", "cropped building", "multiple buildings", "watermark", "text", "blurry", "noisy"]
+}

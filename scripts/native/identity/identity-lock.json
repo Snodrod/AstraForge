@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "base": "Edit the supplied reference into exactly the same object. Change only the body pose, camera view and framing. Preserve the source design, proportions, materials, colors, inventory and asymmetry. Do not add, duplicate, mirror or symmetrically recreate any item. Do not improve, modernize or replace ambiguous details with genre stereotypes. Keep exactly one instance of every source item and no new objects.",
+  "kinds": {
+    "character": "Do not redesign the nose, chin, jaw, eyes, ears, tusks, scars, hair or other defining facial and anatomical features. Preserve the exact face and body proportions.",
+    "building": "Do not redesign the roof, facade, windows, doors, structural silhouette or other defining architectural features. Preserve the exact footprint and construction."
+  },
+  "purposes": {
+    "apose": "For a character, produce one full-body FRONT view in a relaxed neutral A-pose: upright head and torso, arms lowered slightly away from the torso, open empty hands, straight parallel legs, both feet flat and visible. Preserve the head design instead of substituting a generic face. Center the entire object on a plain neutral gray background.",
+    "views": "Produce coherent orthographic front, side and back views of the same object in the same structural configuration and with the same materials. Preserve the exact profile silhouette and all left/right differences. Use a plain neutral gray background and keep the entire object visible."
+  }
+}

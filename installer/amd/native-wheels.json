@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "official": [
+    {
+      "file": "rocm_sdk_core-7.2.1-py3-none-win_amd64.whl",
+      "size": 644793492,
+      "sha256": "f68989d48df71cbfc3cb68bf705dc37c0f56e9666feddb59a1a0f5ff7539fe1c",
+      "url": "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_core-7.2.1-py3-none-win_amd64.whl"
+    },
+    {
+      "file": "rocm_sdk_devel-7.2.1-py3-none-win_amd64.whl",
+      "size": 232840013,
+      "sha256": "19e6ee67e13432b7c1e8a4077df795dcb1239546ae314700c4b4d97e5b4b8f63",
+      "url": "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_devel-7.2.1-py3-none-win_amd64.whl"
+    },
+    {
+      "file": "rocm_sdk_libraries_custom-7.2.1-py3-none-win_amd64.whl",
+      "size": 489964648,
+      "sha256": "c7fe0b0731af8896093ff69e11496830d3cb6a4aed73e895c60b7cbdc200be92",
+      "url": "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm_sdk_libraries_custom-7.2.1-py3-none-win_amd64.whl"
+    },
+    {
+      "file": "rocm-7.2.1.tar.gz",
+      "size": 15940,
+      "sha256": "9084902eaa69213a00a90784ad89e6e5fe73c702df0cc6cc3a70d777c7a6142b",
+      "url": "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/rocm-7.2.1.tar.gz"
+    },
+    {
+      "file": "torch-2.9.1+rocm7.2.1-cp312-cp312-win_amd64.whl",
+      "size": 821065907,
+      "sha256": "e88bf270163b48f7f27f7ea3db5ffb3be4ba107301933022bcb3c6ddedfeeabb",
+      "url": "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torch-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl"
+    },
+    {
+      "file": "torchaudio-2.9.1+rocm7.2.1-cp312-cp312-win_amd64.whl",
+      "size": 514708,
+      "sha256": "62835605995c7812a3224733abf08e222afddb7a487c493521e613ca46e578ab",
+      "url": "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchaudio-2.9.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl"
+    },
+    {
+      "file": "torchvision-0.24.1+rocm7.2.1-cp312-cp312-win_amd64.whl",
+      "size": 1863312,
+      "sha256": "b5c34d76a2f01fb97e1e0f224bd97fc3a58ec1ee1ef2376af2d72086e9aca34c",
+      "url": "https://repo.radeon.com/rocm/windows/rocm-rel-7.2.1/torchvision-0.24.1%2Brocm7.2.1-cp312-cp312-win_amd64.whl"
+    }
+  ],
+  "extensions": [
+    {
+      "file": "cumesh-1.0-cp312-cp312-win_amd64.whl",
+      "size": 5649177,
+      "sha256": "27f4600536972e51c6f3967fa370132b7d0781f1a64be3c67f91ae0af8f1614b"
+    },
+    {
+      "file": "flex_gemm-1.0.0-cp312-cp312-win_amd64.whl",
+      "size": 294337,
+      "sha256": "ef65af07c3f34c767ba111d79407b9de4ba1d6137669fc0cd9482bce62c1d4c8"
+    },
+    {
+      "file": "o_voxel-0.0.1-cp312-cp312-win_amd64.whl",
+      "size": 267263,
+      "sha256": "7a5a36de76e121082dbf3661e6fa3852da5ac6f1a56ce89d8efe2c04884fa0ae"
+    }
+  ]
+}

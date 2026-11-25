@@ -1,0 +1,25 @@
+diff --git a/flex_gemm/ops/grid_sample/grid_sample.py b/flex_gemm/ops/grid_sample/grid_sample.py
+index 41db3ee..ff4e8b8 100644
+--- a/flex_gemm/ops/grid_sample/grid_sample.py
++++ b/flex_gemm/ops/grid_sample/grid_sample.py
+@@ -5,6 +5,11 @@ from .. import grid_sample, utils
+ from ... import kernels
+ 
+ 
++def _indice_weighted_sum(feats: torch.Tensor, indices: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
++    idx = indices.long().clamp(0, feats.shape[0] - 1)
++    return (feats[idx] * weight.unsqueeze(-1)).sum(dim=1)
++
++
+ class GridSample3dFunction(Function):
+     
+     @staticmethod
+@@ -110,7 +115,7 @@ class GridSample3dFunction(Function):
+             W, H, D
+         )
+         
+-        out = kernels.triton.indice_weighed_sum_fwd(
++        out = _indice_weighted_sum(
+             feats,
+             indices.view(-1, 8),
+             weight.view(-1, 8),

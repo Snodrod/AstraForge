@@ -146,6 +146,10 @@ def _appdata_godot_snapshot():
 
 # --------------------------------------------------------------------------- unit tests
 
+def test_cycles_device_backends_include_amd_hip():
+    assert xl.cycles_device_kinds() == ("OPTIX", "CUDA", "HIP")
+
+
 def test_sample_times_and_clip_names():
     assert xl.sample_times(0, 12, 12, True) == [float(i) for i in range(12)]
     t = xl.sample_times(4, 84, 12, False)

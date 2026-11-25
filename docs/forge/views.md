@@ -44,8 +44,8 @@ The "Create" tab, the **"Views"** block under "Concept image":
 3. You can drag your own file into any slot or click the upload icon. Hovering over a finished slot offers: replace, recreate, remove.
 4. Above the button is the **"3D engine"** switch: **Pixal3D** (more accurate and crisper, about 4 minutes, ~10 GB VRAM; the default if installed) or **Hunyuan3D-2mv**
    (faster, softer shape). Details and numbers — `docs/forge/pixal3d.md`.
-5. **"Create 3D from views"**: an ordinary generation job (queue, cancel, "Results" history), quality and seed come from the "Geometry quality" block below
-   (Pixal3D has no quality switch). If there is only one view (just the front), the button is inactive: for one view there is the ordinary button.
+5. **"Create 3D from views"**: an ordinary generation job (queue, cancel, "Results" history), quality and seed come from the "Geometry quality" block below.
+   Pixal3D offers draft 512 and full 1024; AMD multi-view 1024 is blocked with a draft 512 alternative. If there is only one view (just the front), the button is inactive: for one view there is the ordinary button.
 
 The result is loaded into the scene as after an ordinary generation. In "Results" such a model is labelled "Model from views (N views)" (for Pixal3D prefixed "Pixal3D ·"),
 "Re-extract the surface" works for Hunyuan3D (the sample is taken from the engine cache: a repeat took 3 s); Pixal3D has no such button.
@@ -128,6 +128,26 @@ An honest verdict on the sources for this character:
   Fine for a draft and when going online is not allowed; for a final character ChatGPT or your own views are better.
 - Left/right check (views supplied with the sides swapped): the model barely reacts to the swap (silhouettes and pouch stay in place), so a convention error would be hard to notice here;
   the convention was chosen by the model's view order (front, left, back, right: the camera circles the character counter-clockwise seen from above) and matches the MV-Adapter azimuths.
+
+## Experimental A-pose-first playbook with identity-lock
+
+A single dynamic concept should be normalized to a neutral full-body A-pose before four-view generation. A UV atlas cannot repair inconsistent anatomy or equipment between views. The asymmetric-pauldron rule always uses character-relative anatomy: the character's own right shoulder appears on the left side of a front image.
+
+Prompts are no longer global orc constants. `scripts/native/identity_config.mjs` composes them from independent JSON inputs:
+
+- `identity/identity-lock.json`: generic preservation rules, kind-specific character/building invariants and A-pose/views purposes;
+- `identity/preset-orc.json`: exact face/tusks/topknot, one right-shoulder pauldron, different wrist coverings, different boots and profile requirements;
+- `identity/negative-character.json`, `negative-building.json`, `negative-generic.json`, `negative-none.json` or a custom negative JSON.
+
+Character rules cannot leak into a building result: the resolver validates profile kind and tests cover this boundary. Negative prompts are auxiliary filters, not proof of identity. A-pose accepts only a character preset; the building example currently verifies resolver reuse, not A-pose for buildings.
+
+Each run creates an immutable attempt with `manifest.json` and pending `review.json`. The manifest records resolved prompts, JSON versions/paths, seed, timing, workflow and SHA-256 hashes. A-pose produces `comparison.jpg`; views produce `views-sheet.jpg`. Use `scripts/native/review_native_attempt.mjs` only after actual visual inspection.
+
+Reject A-pose or views for a changed nose/chin/jaw/tusks/hairline, a long invented facial wedge in profile, duplicate equipment, symmetric replacements for asymmetric items, wrong left/right orientation, extra limbs/fingers, cropped hands/feet, invented props, inconsistent scale, collage/text or segmentation holes. A valid PNG is not artistic acceptance.
+
+Use the MV-Adapter-generated front from the same batch as left/back/right (`--coherent-front true`). Do not silently mix views from different batches. Shape requires an approved views attempt and rechecks every normalized RGBA `views/norm/cut_*.png` hash; pending, rejected, missing or modified-after-review inputs stop before ComfyUI starts.
+
+The first orc A-pose/views set was visually rejected and remains unapproved. No prompt or metric can guarantee identity from one source image, so human review remains mandatory.
 
 ## Limitations
 

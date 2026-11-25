@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "kind": "character",
+  "name": "orc",
+  "positive": "The same green-skinned fantasy orc with his exact source face, protruding lower tusks, black beard and topknot, muscular proportions, scars and painted game-concept-art style.",
+  "viewsPrompt": "Same green orc, exact source face: short broad nose, heavy brow, compact chin and jaw, black beard and topknot, lower tusks, original scars. Coherent full-body orthographic front, side and back views of one A-pose character; preserve proportions, equipment and left/right asymmetry. Plain gray background.",
+  "identityFeatures": [
+    "Preserve the original short broad nose, heavy brow, chin, jaw, beard and tusk placement; do not substitute a long nose or a generic orc face.",
+    "Keep the original topknot silhouette and all visible scars."
+  ],
+  "inventory": [
+    "Exactly one oversized spiked metal pauldron on the character's own RIGHT shoulder, seen on the LEFT side of a front image; the other shoulder is bare.",
+    "Keep the source's different left and right wrist coverings; do not give both arms identical spiked bracers.",
+    "Keep the source's two different boots and their original left/right placement; do not replace them with a matching fur-trimmed pair.",
+    "Keep the original belts, chest strap, ring, pouches and loincloth without duplicates."
+  ],
+  "asymmetry": [
+    "The pauldron remains on the character's own right shoulder in every view.",
+    "Wrist coverings and boots remain intentionally different."
+  ],
+  "viewNotes": [
+    "Side views must have a credible human-orc profile with the source nose, lips, chin and tusks, never a long triangular facial wedge."
+  ]
+}

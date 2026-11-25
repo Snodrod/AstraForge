@@ -220,6 +220,10 @@ def safe_name(name):
 
 # --------------------------------------------------------------------------- engine
 
+def cycles_device_kinds():
+    return ("OPTIX", "CUDA", "HIP")
+
+
 def set_engine(scene, name="EEVEE", samples=None):
     """Select a render engine; returns (engine_id, device_note)."""
     name = (name or "EEVEE").upper()
@@ -238,7 +242,7 @@ def set_engine(scene, name="EEVEE", samples=None):
     if eng == "CYCLES":
         prefs = bpy.context.preferences.addons["cycles"].preferences
         scene.cycles.device = "CPU"
-        for kind in ("OPTIX", "CUDA"):
+        for kind in cycles_device_kinds():
             try:
                 prefs.compute_device_type = kind
                 prefs.get_devices()

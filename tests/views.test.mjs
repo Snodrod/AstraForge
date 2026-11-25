@@ -88,6 +88,16 @@ test('MV-Adapter workflow and the memory-safe size', () => {
   assert.equal(safeSize(100, 4), 512);
 });
 
+test('MV-Adapter forwards experiment prompts without changing the default', () => {
+  const prompt = 'full-body orc, exactly one oversized spiked metal pauldron';
+  const negative = 'duplicate pauldron, extra arms';
+  const w = mvadapterWorkflow({ refName: 'r.png', azimuths: [0, 90, 180, 270], size: 512, steps: 30, cfg: 3, seed: 21, prefix: 'x', prompt, negative });
+  assert.equal(w['2'].inputs.prompt, prompt);
+  assert.equal(w['2'].inputs.negative_prompt, negative);
+  const defaults = mvadapterWorkflow({ refName: 'r.png', azimuths: [0], size: 512, steps: 30, cfg: 3, seed: 21, prefix: 'x' });
+  assert.equal(defaults['2'].inputs.prompt, 'high quality, best quality');
+});
+
 test('generate request schema', () => {
   assert.equal(generateSchema.parse({ provider: 'codex' }).overwrite, false);
   assert.throws(() => generateSchema.parse({ provider: 'dalle' }));
